@@ -1,5 +1,5 @@
 /*
- * SimplePelagicLHSAttributes
+ * YSLStageAttributes.java
  *
  * Created on March 20, 2012
  *
@@ -12,19 +12,17 @@ package sh.pcod.YSLStage;
 import java.util.*;
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
-//import sh.pcod.AbstractPcodAttributes;
 import sh.pcod.EggStage.EggStageAttributes;
-import wts.models.DisMELS.framework.AbstractLHSAttributes2;
+import wts.models.DisMELS.framework.AbstractLHSAttributes;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttribute;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
 
 /**
- * DisMELS class representing attributes for arrowtooth flounder eggs.
- * 
- * @author William Stockhausen
+ * DisMELS class representing attributes for Pacific cod yolk-sac larvae.
+ * @TODO: remove PROP_density and PROP_devStage(?) and associated variables.
  */
 @ServiceProvider(service=wts.models.DisMELS.framework.LifeStageAttributesInterface.class)
-public class YSLStageAttributes extends AbstractLHSAttributes2 {
+public class YSLStageAttributes extends AbstractLHSAttributes {
     
     /** Number of attributes defined by this class (including typeName) */
     public static final int numNewAttributes = 9;
@@ -100,7 +98,7 @@ public class YSLStageAttributes extends AbstractLHSAttributes2 {
     private void finishInstantiation(){
         if (newKeys.isEmpty()){
             //set static field information
-            mapAllAttributes.putAll(AbstractLHSAttributes2.mapAttributes);//add from superclass
+            mapAllAttributes.putAll(AbstractLHSAttributes.mapAttributes);//add from superclass
             String key;
             key = PROP_devStage;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"devStage"));
             //key = PROP_diameter;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"diam"));
@@ -117,7 +115,7 @@ public class YSLStageAttributes extends AbstractLHSAttributes2 {
             
             key = PROP_salinity;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"sal"));
             key = PROP_rho;        newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"rho"));
-            allKeys.addAll(AbstractLHSAttributes2.keys);//add from superclass
+            allKeys.addAll(AbstractLHSAttributes.keys);//add from superclass
             allKeys.addAll(newKeys);//add from this class
             Iterator<String> it = allKeys.iterator();
             int j = 0; it.next();//skip typeName
@@ -162,7 +160,7 @@ public class YSLStageAttributes extends AbstractLHSAttributes2 {
      */
     @Override
     public Object[] getAttributes() {
-        Object[] atts = new Object[numNewAttributes+AbstractLHSAttributes2.numAttributes-1];
+        Object[] atts = new Object[numNewAttributes+AbstractLHSAttributes.numAttributes-1];
         int j = 0;
         Iterator<String> it = allKeys.iterator();
         it.next();//skip PROP_typeName
@@ -264,7 +262,7 @@ public class YSLStageAttributes extends AbstractLHSAttributes2 {
     public void setValues(final String[] strv) {
         super.setValues(strv);//set the standard attribute values
         //set the values of the new attributes
-        int j = AbstractLHSAttributes2.numAttributes;
+        int j = AbstractLHSAttributes.numAttributes;
         try {
             for (String key: newKeys) setValueFromString(key,strv[j++]);
         } catch (java.lang.IndexOutOfBoundsException ex) {

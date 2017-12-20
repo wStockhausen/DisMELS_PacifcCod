@@ -1,10 +1,5 @@
 /*
- * Postflexion Pcod Larval Stage
- * Devstage = 3
- * Created on January 24, 2006, 11:33 AM
- *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+ * BenthicJuvStage.java
  */
 
 package sh.pcod.BenthicJuvStage;
@@ -21,13 +16,11 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
 import wts.models.utilities.ModelCalendar;
 import wts.roms.model.LagrangianParticle;
-import sh.pcod.FDLpfStage.FDLpfStageAttributes;
 import sh.pcod.EpijuvStage.EpijuvStageAttributes;
 import wts.roms.model.Interpolator3D;
 
 /**
- *
- * @author William Stockhausen
+ * Class representing the P. cod benthic juvenile stage (dev stage 5).
  */
 @ServiceProvider(service=LifeStageInterface.class)
 public class BenthicJuvStage extends AbstractLHS {
@@ -72,7 +65,7 @@ public class BenthicJuvStage extends AbstractLHS {
     
         //fields that reflect (new) attribute values
     /** development stage,0=egg,1=ysl,2=fdl,3=epijuvFDLpf,4=Epijuv, 5=BenthicJuv */
-    protected double devStage;
+    protected double devStage = 5;
     /** egg diameter (mm) */
     protected double diam = 0;
     /** density of egg [kg/m^3]) */
@@ -83,13 +76,14 @@ public class BenthicJuvStage extends AbstractLHS {
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-     protected double copepod = 0;    /** in situ small copepods */
+    /** in situ small copepods */
+     protected double copepod = 0;    
      /** in situ euphausiid density mg/m^3, dry wt)) */
-    protected double euphausiid = 0;    /** in situ euphausiids */
+    protected double euphausiid = 0;
      /** in situ neocalanoid density mg/m^3, dry wt)) */
-    protected double neocalanus = 0;    /** in situ large copepods */      
+    protected double neocalanus = 0;
+    //SH_NEW
     /**growth in Length mm/d */
-    /**SH_NEW*/
     protected double gL = 0;
         /**FDL Length variable (mm) */
     protected double length = 0;
@@ -141,9 +135,9 @@ public class BenthicJuvStage extends AbstractLHS {
                 throws InstantiationException, IllegalAccessException {
         super(typeName);
         atts = new BenthicJuvStageAttributes(typeName);
-        atts.setValue(BenthicJuvStageAttributes.PROP_id,id);
-        atts.setValue(BenthicJuvStageAttributes.PROP_parentID,id);
-        atts.setValue(BenthicJuvStageAttributes.PROP_origID,id);
+        atts.setValue(LifeStageAttributesInterface.PROP_id,id);
+        atts.setValue(LifeStageAttributesInterface.PROP_parentID,id);
+        atts.setValue(LifeStageAttributesInterface.PROP_origID,id);
         params = (BenthicJuvStageParameters) LHS_Factory.createParameters(typeName);
         super.atts = atts;
         super.params = params;
@@ -453,7 +447,7 @@ public class BenthicJuvStage extends AbstractLHS {
     @Override
     public List<LifeStageInterface> getMetamorphosedIndividuals(double dt) {
         output.clear();
-        LifeStageInterface nLHS = null;
+        List<LifeStageInterface> nLHSs = null;
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
         if ((totalDepth>=minSettlementDepth)&&
@@ -462,8 +456,8 @@ public class BenthicJuvStage extends AbstractLHS {
                     devStage = 5;
                     //density = totalDepth;
              if ((numTrans>0)||!isSuperIndividual){
-                nLHS = createNextLHS();
-                if (nLHS!=null) output.add(nLHS);
+                nLHSs = createNextLHS();
+                if (nLHSs!=null) output.addAll(nLHSs);
                 }
             }    
         return output;
@@ -471,26 +465,8 @@ public class BenthicJuvStage extends AbstractLHS {
     }
     
     
-   /* @Override
-    public List<LifeStageInterface> getMetamorphosedIndividuals(double dt) {
-        double dtp = 0.25*(dt/86400);//use 1/4 timestep (converted from sec to d)
-        output.clear();
-        LifeStageInterface nLHS;
-        
-        //if(length >= flexion) {
-          if(length >= 35.0) {
-           devStage = 4;   
-           if ((numTrans>0)||!isSuperIndividual){
-                nLHS = createNextLHS();
-                if (nLHS!=null) output.add(nLHS);
-            }
-        }
-
-        return output;
-    }*/
-    
-    private LifeStageInterface createNextLHS() {
-        LifeStageInterface nLHS = null;
+    private List<LifeStageInterface> createNextLHS() {
+        List<LifeStageInterface> nLHSs = null;
         try {
             //create LHS with "next" stage
             if (isSuperIndividual) {
@@ -504,7 +480,7 @@ public class BenthicJuvStage extends AbstractLHS {
                  *          5) set number in new LHS to numTrans for current LHS
                  *          6) reset numTrans in current LHS
                  */
-                nLHS = LHS_Factory.createNextLHSFromSuperIndividual(typeName,this,numTrans);
+                nLHSs = LHS_Factory.createNextLHSsFromSuperIndividual(typeName,this,numTrans);
                 numTrans = 0.0;//reset numTrans to zero
             } else {
                 /** 
@@ -518,14 +494,14 @@ public class BenthicJuvStage extends AbstractLHS {
                  *          4) copy current LHS origID to new LHS origID
                  *          5) kill current LHS
                  */
-                nLHS = LHS_Factory.createNextLHSFromIndividual(typeName,this);
+                nLHSs = LHS_Factory.createNextLHSsFromIndividual(typeName,this);
                 alive  = false; //allow only 1 transition, so kill this stage
                 active = false; //set stage inactive, also
             }
         } catch (IllegalAccessException | InstantiationException ex) {
             ex.printStackTrace();
         }
-        return nLHS;
+        return nLHSs;
     }
     
     @Override

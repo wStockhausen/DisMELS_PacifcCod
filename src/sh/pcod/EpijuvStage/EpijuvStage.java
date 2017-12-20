@@ -452,7 +452,7 @@ public class EpijuvStage extends AbstractLHS {
     @Override
     public List<LifeStageInterface> getMetamorphosedIndividuals(double dt) {
         output.clear();
-        LifeStageInterface nLHS = null;
+        List<LifeStageInterface> nLHSs = null;
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
         if ((totalDepth>=minSettlementDepth)&&
@@ -460,8 +460,8 @@ public class EpijuvStage extends AbstractLHS {
                 (depth>(totalDepth-5))*/) {
                     devStage = 5;   
              if ((numTrans>0)||!isSuperIndividual){
-                nLHS = createNextLHS();
-                if (nLHS!=null) output.add(nLHS);
+                nLHSs = createNextLHS();
+                if (nLHSs!=null) output.addAll(nLHSs);
                 }
             }    
         return output;
@@ -469,26 +469,8 @@ public class EpijuvStage extends AbstractLHS {
     }
     
     
-   /* @Override
-    public List<LifeStageInterface> getMetamorphosedIndividuals(double dt) {
-        double dtp = 0.25*(dt/86400);//use 1/4 timestep (converted from sec to d)
-        output.clear();
-        LifeStageInterface nLHS;
-        
-        //if(length >= flexion) {
-          if(length >= 35.0) {
-           devStage = 4;   
-           if ((numTrans>0)||!isSuperIndividual){
-                nLHS = createNextLHS();
-                if (nLHS!=null) output.add(nLHS);
-            }
-        }
-
-        return output;
-    }*/
-    
-    private LifeStageInterface createNextLHS() {
-        LifeStageInterface nLHS = null;
+    private List<LifeStageInterface> createNextLHS() {
+        List<LifeStageInterface> nLHSs = null;
         try {
             //create LHS with "next" stage
             if (isSuperIndividual) {
@@ -502,7 +484,7 @@ public class EpijuvStage extends AbstractLHS {
                  *          5) set number in new LHS to numTrans for current LHS
                  *          6) reset numTrans in current LHS
                  */
-                nLHS = LHS_Factory.createNextLHSFromSuperIndividual(typeName,this,numTrans);
+                nLHSs = LHS_Factory.createNextLHSsFromSuperIndividual(typeName,this,numTrans);
                 numTrans = 0.0;//reset numTrans to zero
             } else {
                 /** 
@@ -516,14 +498,14 @@ public class EpijuvStage extends AbstractLHS {
                  *          4) copy current LHS origID to new LHS origID
                  *          5) kill current LHS
                  */
-                nLHS = LHS_Factory.createNextLHSFromIndividual(typeName,this);
+                nLHSs = LHS_Factory.createNextLHSsFromIndividual(typeName,this);
                 alive  = false; //allow only 1 transition, so kill this stage
                 active = false; //set stage inactive, also
             }
         } catch (IllegalAccessException | InstantiationException ex) {
             ex.printStackTrace();
         }
-        return nLHS;
+        return nLHSs;
     }
     
     @Override
