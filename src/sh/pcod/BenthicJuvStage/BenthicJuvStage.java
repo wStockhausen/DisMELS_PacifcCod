@@ -641,7 +641,7 @@ public class BenthicJuvStage extends AbstractLHS {
         //flexion = 10.0;
         //Growth in length
         if(T<=0.0) T=0.01; 
-        gL = (0.034 + (0.043 * T) - (0.0008 * T * T));//Hurst et al 2010, postflexion eq, mm per day
+        gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//Hurst et al 2010, juvenile eq, mm per day
         length = length + (gL*dtday);
         
         

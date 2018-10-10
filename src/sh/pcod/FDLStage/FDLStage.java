@@ -644,7 +644,7 @@ public class FDLStage extends AbstractLHS {
         //flexion = trian(10.0,13.5,17.0); // ??? What should I use here
         //flexion = 10.0;
         //Growth in length
-        gL = (0.179 + (0.015 * T) - (0.00001 * T * T));//Hurst et al 2010, preflexion eq, mm per day
+        gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
         length = length + (gL*dtday);
         
         //Need Mortality

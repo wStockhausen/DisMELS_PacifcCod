@@ -667,7 +667,7 @@ public class YSLStage extends AbstractLHS {
             //mortality:
             //growth:
              //TEMP
-             gL = (0.179 + (0.015 * T) - (0.00001 * T * T));//Hurst et al 2010, preflexion eq, mm per day
+             gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
              length = length + (gL*dtday);
               
              devStage = 1;
