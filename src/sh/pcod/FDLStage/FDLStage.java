@@ -53,6 +53,13 @@ public class FDLStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
+    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -91,22 +98,20 @@ public class FDLStage extends AbstractLHS {
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    /**growth in Length mm/d */
-    /**SH_NEW*/
-    protected double gL = 0;
-        /**FDL Length variable (mm) */
+    /**FDL Length variable (mm) */
     protected double length = 0;
-    /**FDL maximum size = random between 25-35.  Stays the same at each time step*/
-    protected double maxlength;
-    //FDL Size at flexion
-    protected double flexion=13.5;
-    double T0, T1, T;
 
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
     /** total depth (m) at individual's position */
     private double totalDepth;
+    /**growth in Length mm/d */
+    protected double gL = 0;
+    //FDL Size at flexion
+    protected double flexion=13.5;
+    //in situ temperature
+    double T;
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
@@ -582,20 +587,12 @@ public class FDLStage extends AbstractLHS {
     public void step(double dt) throws ArrayIndexOutOfBoundsException {
         //WTS_NEW 2012-07-26:{
         double[] pos = lp.getIJK();
-        //PRINT HERE
-              
         //System.out.print("uv: "+r+"; "+uv[0]+", "+uv[1]+"\n");
-                
-        T0 = i3d.interpolateTemperature(pos);
-        T1 = i3d.interpolateTemperature(pos);
-        T = 0.5 * (T0 + T1);
+        T = i3d.interpolateTemperature(pos);
         if(T<=0.0) T=0.01; 
              //SH-Prey Stuff  
-        String Cop = "Cop";
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
       
         double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
@@ -624,7 +621,7 @@ public class FDLStage extends AbstractLHS {
             pos = lp.getIJK();
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
-        time = time+dt;
+        time += dt;
         //need to update length, number
        
         //SH_NEW:{

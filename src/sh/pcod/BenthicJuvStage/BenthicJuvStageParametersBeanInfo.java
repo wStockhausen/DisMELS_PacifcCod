@@ -15,7 +15,7 @@ public class BenthicJuvStageParametersBeanInfo extends SimpleBeanInfo {
     // Bean descriptor//GEN-FIRST:BeanDescriptor
     /*lazy BeanDescriptor*/
     private static BeanDescriptor getBdescriptor(){
-        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.YSLStage.YSLStageParameters.class , null ); // NOI18N//GEN-HEADEREND:BeanDescriptor
+        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class , null ); // NOI18N//GEN-HEADEREND:BeanDescriptor
 
         // Here you can add code for customizing the BeanDescriptor.
 
@@ -34,12 +34,12 @@ public class BenthicJuvStageParametersBeanInfo extends SimpleBeanInfo {
         PropertyDescriptor[] properties = new PropertyDescriptor[6];
     
         try {
-            properties[PROPERTY_CSV] = new PropertyDescriptor ( "CSV", sh.pcod.YSLStage.YSLStageParameters.class, "getCSV", null ); // NOI18N
-            properties[PROPERTY_CSVHeader] = new PropertyDescriptor ( "CSVHeader", sh.pcod.YSLStage.YSLStageParameters.class, "getCSVHeader", null ); // NOI18N
-            properties[PROPERTY_IBMFunctionCategories] = new PropertyDescriptor ( "IBMFunctionCategories", sh.pcod.YSLStage.YSLStageParameters.class, "getIBMFunctionCategories", null ); // NOI18N
-            properties[PROPERTY_IBMParameterNames] = new PropertyDescriptor ( "IBMParameterNames", sh.pcod.YSLStage.YSLStageParameters.class, "getIBMParameterNames", null ); // NOI18N
-            properties[PROPERTY_keys] = new PropertyDescriptor ( "keys", sh.pcod.YSLStage.YSLStageParameters.class, "getKeys", null ); // NOI18N
-            properties[PROPERTY_typeName] = new PropertyDescriptor ( "typeName", sh.pcod.YSLStage.YSLStageParameters.class, "getTypeName", "setTypeName" ); // NOI18N
+            properties[PROPERTY_CSV] = new PropertyDescriptor ( "CSV", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getCSV", null ); // NOI18N
+            properties[PROPERTY_CSVHeader] = new PropertyDescriptor ( "CSVHeader", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getCSVHeader", null ); // NOI18N
+            properties[PROPERTY_IBMFunctionCategories] = new PropertyDescriptor ( "IBMFunctionCategories", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getIBMFunctionCategories", null ); // NOI18N
+            properties[PROPERTY_IBMParameterNames] = new PropertyDescriptor ( "IBMParameterNames", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getIBMParameterNames", null ); // NOI18N
+            properties[PROPERTY_keys] = new PropertyDescriptor ( "keys", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getKeys", null ); // NOI18N
+            properties[PROPERTY_typeName] = new PropertyDescriptor ( "typeName", sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "getTypeName", "setTypeName" ); // NOI18N
         }
         catch(IntrospectionException e) {
             e.printStackTrace();
@@ -57,7 +57,7 @@ public class BenthicJuvStageParametersBeanInfo extends SimpleBeanInfo {
         EventSetDescriptor[] eventSets = new EventSetDescriptor[1];
     
         try {
-            eventSets[EVENT_propertyChangeListener] = new EventSetDescriptor ( sh.pcod.YSLStage.YSLStageParameters.class, "propertyChangeListener", java.beans.PropertyChangeListener.class, new String[] {"propertyChange"}, "addPropertyChangeListener", "removePropertyChangeListener" ); // NOI18N
+            eventSets[EVENT_propertyChangeListener] = new EventSetDescriptor ( sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class, "propertyChangeListener", java.beans.PropertyChangeListener.class, new String[] {"propertyChange"}, "addPropertyChangeListener", "removePropertyChangeListener" ); // NOI18N
         }
         catch(IntrospectionException e) {
             e.printStackTrace();
@@ -67,12 +67,12 @@ public class BenthicJuvStageParametersBeanInfo extends SimpleBeanInfo {
 
         return eventSets;     }//GEN-LAST:Events
     // Method identifiers//GEN-FIRST:Methods
-    private static final int METHOD_clone0 = 0;
-    private static final int METHOD_createInstance1 = 1;
-    private static final int METHOD_getIBMFunction2 = 2;
-    private static final int METHOD_getIBMFunctionNamesByCategory3 = 3;
-    private static final int METHOD_getIBMParameter4 = 4;
-    private static final int METHOD_getSelectedIBMFunctionForCategory5 = 5;
+    private static final int METHOD_getIBMFunction0 = 0;
+    private static final int METHOD_getIBMFunctionNamesByCategory1 = 1;
+    private static final int METHOD_getIBMParameter2 = 2;
+    private static final int METHOD_getSelectedIBMFunctionForCategory3 = 3;
+    private static final int METHOD_getValue4 = 4;
+    private static final int METHOD_getValue5 = 5;
     private static final int METHOD_getValue6 = 6;
     private static final int METHOD_getValue7 = 7;
     private static final int METHOD_getValue8 = 8;
@@ -81,68 +81,62 @@ public class BenthicJuvStageParametersBeanInfo extends SimpleBeanInfo {
     private static final int METHOD_getValue11 = 11;
     private static final int METHOD_getValue12 = 12;
     private static final int METHOD_getValue13 = 13;
-    private static final int METHOD_getValue14 = 14;
-    private static final int METHOD_getValue15 = 15;
-    private static final int METHOD_selectIBMFunctionForCategory16 = 16;
-    private static final int METHOD_setIBMFunction17 = 17;
+    private static final int METHOD_selectIBMFunctionForCategory14 = 14;
+    private static final int METHOD_setIBMFunction15 = 15;
+    private static final int METHOD_setValue16 = 16;
+    private static final int METHOD_setValue17 = 17;
     private static final int METHOD_setValue18 = 18;
     private static final int METHOD_setValue19 = 19;
     private static final int METHOD_setValue20 = 20;
-    private static final int METHOD_setValue21 = 21;
-    private static final int METHOD_setValue22 = 22;
 
     // Method array 
     /*lazy MethodDescriptor*/
     private static MethodDescriptor[] getMdescriptor(){
-        MethodDescriptor[] methods = new MethodDescriptor[23];
+        MethodDescriptor[] methods = new MethodDescriptor[21];
     
         try {
-            methods[METHOD_clone0] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("clone", new Class[] {})); // NOI18N
-            methods[METHOD_clone0].setDisplayName ( "" );
-            methods[METHOD_createInstance1] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("createInstance", new Class[] {java.lang.String[].class})); // NOI18N
-            methods[METHOD_createInstance1].setDisplayName ( "" );
-            methods[METHOD_getIBMFunction2] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("getIBMFunction", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
-            methods[METHOD_getIBMFunction2].setDisplayName ( "" );
-            methods[METHOD_getIBMFunctionNamesByCategory3] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("getIBMFunctionNamesByCategory", new Class[] {java.lang.String.class})); // NOI18N
-            methods[METHOD_getIBMFunctionNamesByCategory3].setDisplayName ( "" );
-            methods[METHOD_getIBMParameter4] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getIBMParameter", new Class[] {java.lang.String.class})); // NOI18N
-            methods[METHOD_getIBMParameter4].setDisplayName ( "" );
-            methods[METHOD_getSelectedIBMFunctionForCategory5] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getSelectedIBMFunctionForCategory", new Class[] {java.lang.String.class})); // NOI18N
-            methods[METHOD_getSelectedIBMFunctionForCategory5].setDisplayName ( "" );
-            methods[METHOD_getValue6] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Boolean.class})); // NOI18N
+            methods[METHOD_getIBMFunction0] = new MethodDescriptor(sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class.getMethod("getIBMFunction", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
+            methods[METHOD_getIBMFunction0].setDisplayName ( "" );
+            methods[METHOD_getIBMFunctionNamesByCategory1] = new MethodDescriptor(sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class.getMethod("getIBMFunctionNamesByCategory", new Class[] {java.lang.String.class})); // NOI18N
+            methods[METHOD_getIBMFunctionNamesByCategory1].setDisplayName ( "" );
+            methods[METHOD_getIBMParameter2] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getIBMParameter", new Class[] {java.lang.String.class})); // NOI18N
+            methods[METHOD_getIBMParameter2].setDisplayName ( "" );
+            methods[METHOD_getSelectedIBMFunctionForCategory3] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getSelectedIBMFunctionForCategory", new Class[] {java.lang.String.class})); // NOI18N
+            methods[METHOD_getSelectedIBMFunctionForCategory3].setDisplayName ( "" );
+            methods[METHOD_getValue4] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Boolean.class})); // NOI18N
+            methods[METHOD_getValue4].setDisplayName ( "" );
+            methods[METHOD_getValue5] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Double.class})); // NOI18N
+            methods[METHOD_getValue5].setDisplayName ( "" );
+            methods[METHOD_getValue6] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Integer.class})); // NOI18N
             methods[METHOD_getValue6].setDisplayName ( "" );
-            methods[METHOD_getValue7] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Double.class})); // NOI18N
+            methods[METHOD_getValue7] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Long.class})); // NOI18N
             methods[METHOD_getValue7].setDisplayName ( "" );
-            methods[METHOD_getValue8] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Integer.class})); // NOI18N
+            methods[METHOD_getValue8] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, boolean.class})); // NOI18N
             methods[METHOD_getValue8].setDisplayName ( "" );
-            methods[METHOD_getValue9] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.Long.class})); // NOI18N
+            methods[METHOD_getValue9] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
             methods[METHOD_getValue9].setDisplayName ( "" );
-            methods[METHOD_getValue10] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, boolean.class})); // NOI18N
+            methods[METHOD_getValue10] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
             methods[METHOD_getValue10].setDisplayName ( "" );
-            methods[METHOD_getValue11] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
+            methods[METHOD_getValue11] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
             methods[METHOD_getValue11].setDisplayName ( "" );
-            methods[METHOD_getValue12] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
+            methods[METHOD_getValue12] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
             methods[METHOD_getValue12].setDisplayName ( "" );
-            methods[METHOD_getValue13] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
+            methods[METHOD_getValue13] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class})); // NOI18N
             methods[METHOD_getValue13].setDisplayName ( "" );
-            methods[METHOD_getValue14] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
-            methods[METHOD_getValue14].setDisplayName ( "" );
-            methods[METHOD_getValue15] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("getValue", new Class[] {java.lang.String.class})); // NOI18N
-            methods[METHOD_getValue15].setDisplayName ( "" );
-            methods[METHOD_selectIBMFunctionForCategory16] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("selectIBMFunctionForCategory", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
-            methods[METHOD_selectIBMFunctionForCategory16].setDisplayName ( "" );
-            methods[METHOD_setIBMFunction17] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setIBMFunction", new Class[] {java.lang.String.class, java.lang.String.class, wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface.class})); // NOI18N
-            methods[METHOD_setIBMFunction17].setDisplayName ( "" );
-            methods[METHOD_setValue18] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
+            methods[METHOD_selectIBMFunctionForCategory14] = new MethodDescriptor(sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class.getMethod("selectIBMFunctionForCategory", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
+            methods[METHOD_selectIBMFunctionForCategory14].setDisplayName ( "" );
+            methods[METHOD_setIBMFunction15] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setIBMFunction", new Class[] {java.lang.String.class, java.lang.String.class, wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface.class})); // NOI18N
+            methods[METHOD_setIBMFunction15].setDisplayName ( "" );
+            methods[METHOD_setValue16] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
+            methods[METHOD_setValue16].setDisplayName ( "" );
+            methods[METHOD_setValue17] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, float.class})); // NOI18N
+            methods[METHOD_setValue17].setDisplayName ( "" );
+            methods[METHOD_setValue18] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
             methods[METHOD_setValue18].setDisplayName ( "" );
-            methods[METHOD_setValue19] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, float.class})); // NOI18N
+            methods[METHOD_setValue19] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
             methods[METHOD_setValue19].setDisplayName ( "" );
-            methods[METHOD_setValue20] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
+            methods[METHOD_setValue20] = new MethodDescriptor(sh.pcod.BenthicJuvStage.BenthicJuvStageParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, java.lang.Object.class})); // NOI18N
             methods[METHOD_setValue20].setDisplayName ( "" );
-            methods[METHOD_setValue21] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
-            methods[METHOD_setValue21].setDisplayName ( "" );
-            methods[METHOD_setValue22] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageParameters.class.getMethod("setValue", new Class[] {java.lang.String.class, java.lang.Object.class})); // NOI18N
-            methods[METHOD_setValue22].setDisplayName ( "" );
         }
         catch( Exception e) {}//GEN-HEADEREND:Methods
 

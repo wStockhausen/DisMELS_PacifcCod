@@ -47,17 +47,16 @@ public class YSLStageParameters extends AbstractLHSParameters {
     public static final String PARAM_minStageDuration       = "min stage duration [d]";
     public static final String PARAM_maxStageDuration       = "max stage duration [d]";
     public static final String PARAM_useRandomTransitions   = "use random transitions";
+    /** The 'keys' used to store the ibm parameters */
+    protected static final Set<String> setOfParamKeys = new LinkedHashSet<>(2*numParams);
     
     /** the number of IBMFunction categories defined in the class */
     public static final int numFunctionCats = 3;
     public static final String FCAT_Mortality        = "mortality";
     public static final String FCAT_VerticalMovement = "vertical movement";
-    public static final String FCAT_VerticalVelocity = "vertical velocity";
-    
+    public static final String FCAT_VerticalVelocity = "vertical velocity";    
     /** The 'keys' used to store the ibm functions */
     protected static final Set<String> setOfFunctionCategories = new LinkedHashSet<>(2*numFunctionCats);
-    /** The 'keys' used to store the ibm parameters */
-    protected static final Set<String> setOfParamKeys = new LinkedHashSet<>(2*numParams);
     
     private static final Logger logger = Logger.getLogger(YSLStageParameters.class.getName());
     

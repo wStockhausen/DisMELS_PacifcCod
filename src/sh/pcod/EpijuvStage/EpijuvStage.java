@@ -53,6 +53,13 @@ public class EpijuvStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
+    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -98,9 +105,8 @@ public class EpijuvStage extends AbstractLHS {
     protected double length = 0;
     /**FDL maximum size = random between 25-35.  Stays the same at each time step*/
     protected double maxlength;
-    //FDL Size at flexion
-    //protected double flexion;
-    double T0, T1, T;
+    //in situ temperature
+    double T;
 
             //other fields
     /** number of individuals transitioning to next stage */
@@ -590,17 +596,12 @@ public class EpijuvStage extends AbstractLHS {
         //WTS_NEW 2012-07-26:{
         double[] pos = lp.getIJK();
         //SH_NEW
-        T0 = i3d.interpolateTemperature(pos);
-        T1 = i3d.interpolateTemperature(pos);
-        T = 0.5 * (T0 + T1);
+        T = i3d.interpolateTemperature(pos);
         if(T<=0.0) T=0.01; 
         
              //SH-Prey Stuff  
-        String Cop = "Cop";
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
              
         

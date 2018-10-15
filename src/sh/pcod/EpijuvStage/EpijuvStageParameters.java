@@ -4,6 +4,9 @@
  * Revised on 10/11/2018:
  *   Removed FCAT_Development and development functions category.
  *   Removed EggAscensionRate function as option for vertical movement.
+ * Revised on 10/15/2018:
+ *   Removed FCAT_VerticalVelocity and associated functions category;
+ *     function for w is hard-wired in calcUVW.
  *
  */
 
@@ -19,7 +22,6 @@ import org.openide.util.lookup.ServiceProvider;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
-import wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMParameter;
@@ -51,10 +53,9 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_maxSettlementDepth     = "max settlement depth (m)";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 3;
+    public static final int numFunctionCats = 2;
     public static final String FCAT_Mortality        = "mortality";
     public static final String FCAT_VerticalMovement = "vertical movement";
-    public static final String FCAT_VerticalVelocity = "vertical velocity";
     
     /** The 'keys' used to store the ibm functions */
     protected static final Set<String> setOfFunctionCategories = new LinkedHashSet<>(2*numFunctionCats);
@@ -109,7 +110,6 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
         //create the set of function category keys for this class
         setOfFunctionCategories.add(FCAT_Mortality);
         setOfFunctionCategories.add(FCAT_VerticalMovement);
-        setOfFunctionCategories.add(FCAT_VerticalVelocity);
         
         //create the map from function categories to potential functions in each category
         String cat; Map<String,IBMFunctionInterface> mapOfPotentialFunctions; IBMFunctionInterface ifi;
@@ -121,10 +121,6 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
         cat = FCAT_VerticalMovement;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
-        cat = FCAT_VerticalVelocity;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(2); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new ConstantMovementRateFunction(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**

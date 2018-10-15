@@ -53,6 +53,13 @@ public class FDLpfStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
+    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -88,22 +95,20 @@ public class FDLpfStage extends AbstractLHS {
     protected double neocalanus = 0;    /** in situ large copepods */      
     /** in situ water density */
     protected double rho = 0;
-    /**growth in Length mm/d */
-    /**SH_NEW*/
-    protected double gL = 0;
-        /**FDL Length variable (mm) */
+    /**length (mm) */
     protected double length = 0;
-    /**FDL maximum size = random between 25-35.  Stays the same at each time step*/
-    protected double maxlength;
-    //FDL Size at flexion
-    //protected double flexion;
-    double T0, T1, T;
 
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
     /** total depth (m) at individual's position */
     private double totalDepth;
+    /**growth in length mm/d */
+    protected double gL = 0;
+    /**FDLpf maximum size = random between 25-35.  Stays the same at each time step*/
+    protected double maxlength = 25.0;
+    //in situ temperature
+    double T;
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
@@ -444,7 +449,7 @@ public class FDLpfStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         
-        if(length >= 25.0) {
+        if(length >= maxlength) {
            devStage = 4;   
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
@@ -578,20 +583,14 @@ public class FDLpfStage extends AbstractLHS {
         //WTS_NEW 2012-07-26:{
         double[] pos = lp.getIJK();
         //SH_NEW
-        T0 = i3d.interpolateTemperature(pos);
-        T1 = i3d.interpolateTemperature(pos);
-        T = 0.5 * (T0 + T1);
+        T = i3d.interpolateTemperature(pos);
         if(T<=0.0) T=0.01; 
        
              //SH-Prey Stuff  
-        String Cop = "Cop";
         copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-      
-        
+             
         double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
         if (attached){
             lp.setIJK(pos[0], pos[1], pos[2]);
@@ -616,8 +615,7 @@ public class FDLpfStage extends AbstractLHS {
             pos = lp.getIJK();
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
-        time = time+dt;
-        //TODO: need to update length, number
+        time += dt;
         
         //SH_NEW:{
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
@@ -625,14 +623,8 @@ public class FDLpfStage extends AbstractLHS {
         //flexion = 10.0;
         //Growth in length
         gL = (0.034 + (0.043 * T) - (0.0008 * T * T));//Hurst et al 2010, postflexion eq, mm per day
-        length = length + (gL*dtday);
+        length += (gL*dtday);
         
-        //Need Mortality
-        
-        //No DVM until after flexion - next stage
-        //Need Swimspeed
-        //Preflexion larval depth: 0-40m
-
         updateNum(dt);
         updateAge(dt);
         updatePosition(pos);

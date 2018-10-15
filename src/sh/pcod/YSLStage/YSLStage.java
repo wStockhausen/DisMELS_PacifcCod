@@ -54,6 +54,13 @@ public class YSLStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
+    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -91,9 +98,8 @@ public class YSLStage extends AbstractLHS {
     /** in situ water density */
     protected double rho = 0;
     /**growth in Length mm/d */
-    /**SH_NEW*/
     protected double gL = 0;
-        /**YSL Length variable (mm) */
+    /**YSL Length variable (mm) */
     protected double length = 0;
     /**YSL yolksac absorption duration and progression through stage*/
     protected double maxstagedur;
@@ -591,11 +597,8 @@ public class YSLStage extends AbstractLHS {
         double T0 = i3d.interpolateTemperature(pos);
         
       //SH-Prey Stuff  
-        String Cop = "Cop";
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
                
         double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
@@ -622,7 +625,7 @@ public class YSLStage extends AbstractLHS {
             pos = lp.getIJK();
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
-        time = time+dt;
+        time += dt;
         //need to update devStage, length, number
         double T1 = i3d.interpolateTemperature(pos);
         double T = 0.5 * (T0 + T1);

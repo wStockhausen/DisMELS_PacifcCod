@@ -5,6 +5,9 @@
  * Revised 10/11/2018:
  *   Added "attached" as new attribute (necessary with updated DisMELS).
  *   Revised for compatibility with DisMELS (branch DisMELS_2.0SnowCrab).
+ * Revised 10/15/2018:
+ *   Removed all Parameter function categories except "mortality" because they
+ *     were not being used (development is hard-wired, eggs don't move).
  *
  */
 
@@ -19,8 +22,6 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.models.utilities.CalendarIF;
-import wts.models.utilities.DateTimeFunctions;
 import wts.roms.model.Interpolator3D;
 import wts.roms.model.LagrangianParticle;
 
@@ -32,9 +33,6 @@ import wts.roms.model.LagrangianParticle;
 @ServiceProvider(service=LifeStageInterface.class)
 public class EggStage extends AbstractLHS {
     
-    /** the DisMELS globalInfo object */
-    protected static final GlobalInfo globalInfo = GlobalInfo.getInstance();
-
         //Static fields    
             //  Static fields new to this class
     /* flag to do debug operations */
@@ -54,6 +52,13 @@ public class EggStage extends AbstractLHS {
             sh.pcod.YSLStage.YSLStage.class.getName() };
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
+    
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
     
     //Instance fields
             //  Fields hiding ones from superclass
@@ -104,19 +109,13 @@ public class EggStage extends AbstractLHS {
     /** total depth (m) at individual's position */
     private double totalDepth;
     
-    /** IBM function selected for development */
-    private IBMFunctionInterface fcnDevelopment = null; 
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
-    /** IBM function selected for vertical movement */
-    private IBMFunctionInterface fcnVM = null; 
-    /** IBM function selected for vertical velocity */
-    private IBMFunctionInterface fcnVV = null; 
     
     private static final Logger logger = Logger.getLogger(EggStage.class.getName());
     
     /**
-     * Creates a new instance of GenericLHS.  
+     * Creates a new instance of EggStage.  
      *  This constructor should be used ONLY to obtain
      *  the class names of the associated classes.
      * DO NOT DELETE THIS CONSTRUCTOR!!
@@ -380,10 +379,7 @@ public class EggStage extends AbstractLHS {
             params = (EggStageParameters) newParams;
             super.params = params;
             setParameterValues();
-            fcnDevelopment = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_Development);
             fcnMortality = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_Mortality);
-            fcnVM = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_VerticalMovement);
-            fcnVV = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_VerticalVelocity);
         } else {
             //TODO: throw some error
         }
@@ -578,59 +574,18 @@ public class EggStage extends AbstractLHS {
     
     @Override
     public void step(double dt) throws ArrayIndexOutOfBoundsException {
-        //WTS_NEW 2012-07-26:{
+        //Pacific cod eggs are demersal, and assumed to be fixed in place
+        //so location does not change
         double[] pos = lp.getIJK();
-        double T0 = i3d.interpolateTemperature(pos);
-      //SH_NEW-Prey Stuff  
-        String Cop = "Cop";
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
+        double T = i3d.interpolateTemperature(pos);
+        if(T<=0.0) T=0.01; 
+        
+        //SH_NEW-Prey Stuff  
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
        
-        double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
-        if (attached){
-            lp.setIJK(pos[0], pos[1], pos[2]);
-        } else {
-            //}:WTS_NEW 2012-07-26
-            //do lagrangian particle tracking
-            lp.setU(uvw[0],lp.getN());
-            lp.setV(uvw[1],lp.getN());
-            lp.setW(uvw[2],lp.getN());
-            //now do predictor step
-            lp.doPredictorStep();
-            //assume same daytime status, but recalc depth and revise W 
-            pos = lp.getPredictedIJK();
-            depth = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-            if (debug) logger.info("Depth after predictor step = "+depth);
-            //w = calcW(dt,lp.getNP1())+r; //set swimming rate for predicted position
-            lp.setU(uvw[0],lp.getNP1());
-            lp.setV(uvw[1],lp.getNP1());
-            lp.setW(uvw[2],lp.getNP1());
-            //now do corrector step
-            lp.doCorrectorStep();
-            pos = lp.getIJK();
-            if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
-        }
-        time = time+dt;
-        //TODO: need to update devStage, diam, density, number
-        double T1 = i3d.interpolateTemperature(pos);
-        //SH_NEW - Prey stuff        
-        double cop1;
-        cop1 = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        double eup1;
-        eup1 = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        double nca1;
-        nca1 = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-       
-        double T = 0.5 * (T0 + T1);
-          if(T<=0.0) T=0.01; 
-
-        //SH Prey Stuff - Interpolate over time between last time step and new one        
-        copepod = 0.5 * (copepod + cop1);
-        euphausiid = 0.5 * (euphausiid + eup1);
-        neocalanus = 0.5 * (neocalanus + nca1);
+        time += dt;
         
         //SH_NEW:{
         double dtday = dt/86400;
@@ -638,7 +593,7 @@ public class EggStage extends AbstractLHS {
         diam += (gD * dtday);
         stagedur = 46.597 - (4.079 * T);
         //stagedur = 44.4857 - (7.3857*T) + (0.4524*T*T);
-        stageratio = stageratio + ((1.0 / stagedur)*dtday);
+        stageratio += (1.0 / stagedur)*dtday;
         
         updateNum(dt);
         updateAge(dt);
@@ -655,105 +610,6 @@ public class EggStage extends AbstractLHS {
         updateAttributes(); //update the attributes object w/ nmodified values
     }
     
-    //WTS_NEW 2012-07-26:{
-    //deleted methods calcW(dt) and calcUV(dt)
-    
-    /**
-     * Function to calculate movement rates.
-     * 
-     * @param pos - position vector
-     * @param dt - time step
-     * @return 
-     */
-    public double[] calcUVW(double[] pos, double dt) {
-        //compute vertical velocity
-        double w = 0;
-        if (fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.EggAscensionRate) {
-            /**
-            * Calculates the value of the function, given the current parameter params 
-            * and the input variable.
-            * 
-            * @param vars - the inputs variables as a double[].
-            *      [0] - dt   - integration time step [s]
-            *      [1] - d    - egg diameter [mm]
-            *      [2] - drho - density difference (egg - seawater) [kg/m^3]
-            *      [3] - temp - water temperature [deg C]
-            *      [4] - cop  - biomass of small copepods
-            *      [5] - eup  - biomass of euphausiids
-            *      [6] - nca  - biomass of neocalanoids
-            * @return     - ascension rate [m/s] as a Double 
-            */
-           //SH_NEW
-            w = (Double) fcnVM.calculate(new double[]{dt,diam,density-rho,temperature,copepod,euphausiid,neocalanus});
-        } else
-        if (fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges) {
-            //calculate the vertical movement rate
-            if (fcnVV instanceof wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction) {
-                /**
-                * @param vars - double[]{dt}.
-                * @return     - movement rate as a Double 
-                */
-                w = (Double) fcnVV.calculate(new double[]{dt});
-            }
-            /**
-            * Compute time of local sunrise, sunset and solar noon (in minutes, UTC) 
-            * for given lon, lat, and time (in Julian day-of-year).
-            *@param lon : longitude of position (deg Greenwich, prime meridian)
-            *@param lat : latitude of position (deg)
-            *@param time : day-of-year (1-366, fractional part indicates time-of-day)
-            *@return double[5] = [0] time of sunrise (min UTC from midnight)
-            *                    [1] time of sunset (min UTC from midnight)
-            *                    [2] time of solarnoon (min UTC from midnight)
-            *                    [3] solar declination angle (deg)
-            *                    [4] solar zenith angle (deg)
-            * If sunrise/sunset=NaN then its either 24-hr day or night 
-            * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
-            * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
-            */
-            CalendarIF cal = null;
-            double[] ss = null;
-            try {
-                cal = GlobalInfo.getInstance().getCalendar();
-                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
-            } catch(java.lang.NullPointerException ex){
-                logger.info("NullPointerException for EggStage id: "+id);
-                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
-                logger.info(ex.getMessage());
-            }
-            /**
-            * @param vars - the inputs variables as a double[] array with elements
-            *                  dt          - [0] - integration time step
-            *                  depth       - [1] - current depth of individual
-            *                  total depth - [2] - total depth at location
-            *                  w           - [3] - active vertical swimming speed outside preferred depth range
-            *                  lightLevel  - [4] - value >= 0 indicates daytime, otherwise night 
-            * @return     - double[] with elements
-            *              w        - individual active vertical movement velocity
-            *              attached - flag indicating whether individual is attached to bottom(< 0) or not (>0)
-            */
-            double td = i3d.interpolateBathymetricDepth(lp.getIJK());
-            double[] res = (double[]) fcnVM.calculate(new double[]{dt,depth,td,w,90.833-ss[4]});
-            w = res[0];
-            attached = res[1]<0;
-            if (attached) pos[2] = 0;//set individual on bottom
-        }
-        
-        //calculate horizontal movement
-        double[] uv = {0.0,0.0};
-        if (!attached){
-            if ((horizRWP>0)&&(Math.abs(dt)>0)) {
-                double r = Math.sqrt(horizRWP/Math.abs(dt));
-                uv[0] += r*rng.computeNormalVariate(); //stochastic swimming rate
-                uv[1] += r*rng.computeNormalVariate(); //stochastic swimming rate
-                if (debug) System.out.print("uv: "+r+"; "+uv[0]+", "+uv[1]+"\n");
-            }
-        }
-        
-        //return the result
-        return new double[]{Math.signum(dt)*uv[0],Math.signum(dt)*uv[1],Math.signum(dt)*w};
-    }
-    //WTS_NEW 2012-07-26:{
-
     /**
      *
      * @param dt - time step in seconds
@@ -805,6 +661,7 @@ public class EggStage extends AbstractLHS {
     private void interpolateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
+        //interpolate in situ density field
         if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
     }

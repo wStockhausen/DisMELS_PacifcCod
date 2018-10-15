@@ -1,9 +1,11 @@
 /*
  * BenthicJuvStageParameters.java
  *
- * Revised on 10/11/2018:
- *   Removed FCAT_Development and development functions category.
- *   Removed EggAscensionRate function as option for vertical movement.
+ * Revised 10/15/2018:
+ *   Removed all Parameter function categories except "mortality" because they
+ *     were not being used (development is hard-wired, benthic juveniles don't move).
+ * Revised 10/15/2018:
+ *   Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
  *
  */
 
@@ -18,8 +20,6 @@ import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
-import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
-import wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMParameter;
@@ -47,14 +47,10 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_minStageDuration       = "min stage duration [d]";
     public static final String PARAM_maxStageDuration       = "max stage duration [d]";
     public static final String PARAM_useRandomTransitions   = "use random transitions";
-    public static final String PARAM_minSettlementDepth     = "min settlement depth (m)";
-    public static final String PARAM_maxSettlementDepth     = "max settlement depth (m)";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 3;
-    public static final String FCAT_Mortality        = "mortality";
-    public static final String FCAT_VerticalMovement = "vertical movement";
-    public static final String FCAT_VerticalVelocity = "vertical velocity";
+    public static final int numFunctionCats = 1;
+    public static final String FCAT_Mortality = "mortality";
     
     /** The 'keys' used to store the ibm functions */
     protected static final Set<String> setOfFunctionCategories = new LinkedHashSet<>(2*numFunctionCats);
@@ -97,10 +93,6 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
         key = PARAM_horizRWP;             setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
         key = PARAM_minStageDuration;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
         key = PARAM_maxStageDuration;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
-        key = PARAM_minSettlementDepth;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
-        key = PARAM_maxSettlementDepth;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
-
-        
         key = PARAM_useRandomTransitions; setOfParamKeys.add(key); mapParams.put(key,new IBMParameterBoolean(key,key,false));
     }
 
@@ -108,8 +100,6 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
     protected final void createMapToSelectedFunctions() {
         //create the set of function category keys for this class
         setOfFunctionCategories.add(FCAT_Mortality);
-        setOfFunctionCategories.add(FCAT_VerticalMovement);
-        setOfFunctionCategories.add(FCAT_VerticalVelocity);
         
         //create the map from function categories to potential functions in each category
         String cat; Map<String,IBMFunctionInterface> mapOfPotentialFunctions; IBMFunctionInterface ifi;
@@ -117,14 +107,6 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
         mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
-        cat = FCAT_VerticalMovement;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
-        cat = FCAT_VerticalVelocity;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(2); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new ConstantMovementRateFunction(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**

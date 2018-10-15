@@ -4,9 +4,12 @@
  * Revised 10/11/2018:
  *   Corrected gL formula.
  *   Removed fcnDevelopment to match Parameters class.
- *   Removed fcnVV because calculation for w is hard-wired to 0 in calcUVW.
+ *   Removed fcnVV, fnVM because calculation for w is hard-wired to 0 in calcUVW.
  *   Added "attached" as new attribute (necessary with updated DisMELS).
  *   Removed "diam" since it's replaced by "length"
+ * Revised 10/15/2018:
+ *   Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
+ *   Removed most of getMetamorphosedIndividuals() because there is o follow-on stage.
  *
  */
 
@@ -21,10 +24,8 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.models.utilities.DateTimeFunctions;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.EpijuvStage.EpijuvStageAttributes;
-import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
 /**
@@ -52,6 +53,13 @@ public class BenthicJuvStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
+    /* string identifying environmental field with copepod densities */
+    private static final String Cop = "Cop";
+    /* string identifying environmental field with euphausiid densities */
+    private static final String Eup = "Eup";
+    /* string identifying environmental field with neocalanus densities */
+    private static final String NCa = "NCa";
+    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -65,9 +73,6 @@ public class BenthicJuvStage extends AbstractLHS {
     protected double  horizRWP;
     protected double  minStageDuration;
     protected double  maxStageDuration;
-    protected double  minStageSize;
-    protected double minSettlementDepth;
-    protected double maxSettlementDepth;
     protected double  stageTransRate;
     protected boolean useRandomTransitions;
     
@@ -109,8 +114,6 @@ public class BenthicJuvStage extends AbstractLHS {
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
-    /** IBM function selected for vertical movement */
-    private IBMFunctionInterface fcnVM = null; 
     
     private static final Logger logger = Logger.getLogger(BenthicJuvStage.class.getName());
     
@@ -280,12 +283,7 @@ public class BenthicJuvStage extends AbstractLHS {
            //SH_NEW
             // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
             atts.setValue(BenthicJuvStageAttributes.PROP_length,oldAtts.getValue(EpijuvStageAttributes.PROP_length, length));
-
-        
         } else {
-            
-            
-            
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
@@ -391,7 +389,6 @@ public class BenthicJuvStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_Mortality);
-            fcnVM = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_VerticalMovement);
         } else {
             //TODO: throw some error
         }
@@ -409,12 +406,6 @@ public class BenthicJuvStage extends AbstractLHS {
                 params.getValue(BenthicJuvStageParameters.PARAM_minStageDuration,minStageDuration);
         maxStageDuration = 
                 params.getValue(BenthicJuvStageParameters.PARAM_maxStageDuration,maxStageDuration);
-        minSettlementDepth = 
-                params.getValue(BenthicJuvStageParameters.PARAM_minSettlementDepth,minSettlementDepth);
-        maxSettlementDepth = 
-                params.getValue(BenthicJuvStageParameters.PARAM_maxSettlementDepth,maxSettlementDepth);
-        
-        
         useRandomTransitions = 
                 params.getValue(BenthicJuvStageParameters.PARAM_useRandomTransitions,true);
     }
@@ -442,31 +433,25 @@ public class BenthicJuvStage extends AbstractLHS {
     }
 
     /**
-     *
+     * No "next" life stage for BenthicJuv individuals, 
+     * so no metamorphosed individuals.
+     * 
      * @param dt - time step in seconds
-     * @return
+     * @return 
      */
     @Override
     public List<LifeStageInterface> getMetamorphosedIndividuals(double dt) {
         output.clear();
-        List<LifeStageInterface> nLHSs = null;
-        //if total depth is appropriate for settlement and 
-        //indiv is near the bottom, then settle and transform to next stage.
-        if ((totalDepth>=minSettlementDepth)&&
-                (totalDepth<=maxSettlementDepth)&&
-                (depth>(totalDepth-5))) {
-                    devStage = 5;
-                    //density = totalDepth;
-             if ((numTrans>0)||!isSuperIndividual){
-                nLHSs = createNextLHS();
-                if (nLHSs!=null) output.addAll(nLHSs);
-                }
-            }    
         return output;
     
     }
     
-    
+    /**
+     * This would ordinarily be called from getMetamorphosedIndividuals(), but
+     * BenthicJuvs do not have a "next" life stage.
+     * 
+     * @return 
+     */
     private List<LifeStageInterface> createNextLHS() {
         List<LifeStageInterface> nLHSs = null;
         try {
@@ -539,7 +524,7 @@ public class BenthicJuvStage extends AbstractLHS {
         zPos       = atts.getValue(BenthicJuvStageAttributes.PROP_vertPos,zPos);
         time       = startTime;
         numTrans   = 0.0; //set numTrans to zero
-        logger.info(hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
+        if (debug) logger.info(hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
         if (i3d!=null) {
             double[] IJ = new double[] {xPos,yPos};
             if (hType==Types.HORIZ_XY) {
@@ -549,7 +534,7 @@ public class BenthicJuvStage extends AbstractLHS {
                 IJ = i3d.getGrid().computeIJfromLL(yPos,xPos);
             }
             double z = i3d.interpolateBathymetricDepth(IJ);
-            logger.info("Bathymetric depth = "+z);
+            if (debug) logger.info("Bathymetric depth = "+z);
             double ssh = i3d.interpolateSSH(IJ);
 
             double K = 0;  //set K = 0 (at bottom) as default
@@ -588,162 +573,30 @@ public class BenthicJuvStage extends AbstractLHS {
     
     @Override
     public void step(double dt) throws ArrayIndexOutOfBoundsException {
-        //WTS_NEW 2012-07-26:{
+        //BenthicJuveniles do not move
         double[] pos = lp.getIJK();
-        //SH_NEW
-        T0 = i3d.interpolateTemperature(pos);
-        T1 = i3d.interpolateTemperature(pos);
-        T = 0.5 * (T0 + T1);
-        
-             //SH-Prey Stuff  
-        String Cop = "Cop";
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        String Eup = "Eup";
+        T = i3d.interpolateTemperature(pos);
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        String NCa = "NCa";
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-      
         
-        
-            
-        if (attached){
-            lp.setIJK(pos[0], pos[1], pos[2]);
-        } else {
-            double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
-
-            //}:WTS_NEW 2012-07-26
-            //do lagrangian particle tracking
-            lp.setU(uvw[0],lp.getN());
-            lp.setV(uvw[1],lp.getN());
-            lp.setW(uvw[2],lp.getN());
-            //now do predictor step
-            lp.doPredictorStep();
-            //assume same daytime status, but recalc depth and revise W 
-            pos = lp.getPredictedIJK();
-            depth = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-            if (debug) logger.info("Depth after predictor step = "+depth);
-            //w = calcW(dt,lp.getNP1())+r; //set swimming rate for predicted position
-            lp.setU(uvw[0],lp.getNP1());
-            lp.setV(uvw[1],lp.getNP1());
-            lp.setW(uvw[2],lp.getNP1());
-            //now do corrector step
-            lp.doCorrectorStep();
-            pos = lp.getIJK();
-            if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
-        }
-        time = time+dt;
-        
-        //SH_NEW:{
+        time += dt;
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
         //Growth in length
         if(T<=0.0) T=0.01; 
         gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//Hurst et al 2010, juvenile eq, mm per day
         length += (gL*dtday);
         
-        
         //Need Mortality
         
         updateNum(dt);
         updateAge(dt);
-        //SH_NEW 9_14
-        //updatePosition(pos); <-BenthicJuvs do not move!!
+        updatePosition(pos);
         interpolateEnvVars(pos);
-        //check for exiting grid
-        //SH_NEW: remove this so they don't die when nearshore
-        /*if (i3d.isAtGridEdge(pos,tolGridEdge)){
-            alive=false;
-            active=false;
-        }*/
-        if (debug) {
-            logger.info(toString());
-        }
+        //no need to check for exiting grid
+        if (debug) logger.info(toString());
         updateAttributes(); //update the attributes object w/ nmodified values
     }
-    
-    //WTS_NEW 2012-07-26:{
-    //deleted methods calcW(dt) and calcUV(dt)
-    
-    /**
-     * Function to calculate movement rates.
-     * 
-     * @param dt - time step
-     * @return 
-     */
-    public double[] calcUVW(double[] pos, double dt) {
-        //compute vertical velocity
-        double w = 0;
-        double TL;
-        if (fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges) {
-            //calculate the vertical movement rate
-                    //SH_NEW    
-                //w = (Double) fcnVV.calculate(new double[]{dt});
-                //Transform length (which is SL) to TL. From T. Hurst
-                TL = (length + 0.5169)/0.9315;
-                //Calculate swimspeed, ie w (mm/sec.  From T. Hurst
-                //w = (0.081221+(0.043168*Math.log10(T)))*Math.pow(TL,1.49652);
-                //Make w meters/sec
-                //w=w/1000.0;
-                //density = w;
-                //w = 0.0;
-            
-            /**
-            * Compute time of local sunrise, sunset and solar noon (in minutes, UTC) 
-            * for given lon, lat, and time (in Julian day-of-year).
-            *@param lon : longitude of position (deg Greenwich, prime meridian)
-            *@param lat : latitude of position (deg)
-            *@param time : day-of-year (1-366, fractional part indicates time-of-day)
-            *@return double[5] = [0] time of sunrise (min UTC from midnight)
-            *                    [1] time of sunset (min UTC from midnight)
-            *                    [2] time of solarnoon (min UTC from midnight)
-            *                    [3] solar declination angle (deg)
-            *                    [4] solar zenith angle (deg)
-            * If sunrise/sunset=NaN then its either 24-hr day or night 
-            * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
-            * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
-            */
-            CalendarIF cal = null;
-            double[] ss = null;
-            try {
-                cal = GlobalInfo.getInstance().getCalendar();
-                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
-            } catch(java.lang.NullPointerException ex){
-                logger.info("NullPointerException for EggStage id: "+id);
-                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
-                logger.info(ex.getMessage());
-            }
-            /**
-            * @param vars - the inputs variables as a double[] array with elements
-            *                  dt          - [0] - integration time step
-            *                  depth       - [1] - current depth of individual
-            *                  total depth - [2] - total depth at location
-            *                  w           - [3] - active vertical swimming speed outside preferred depth range
-            *                  lightLevel  - [4] - value >= 0 indicates daytime, otherwise night 
-            * @return     - double[] with elements
-            *              w        - individual active vertical movement velocity
-            *              attached - flag indicating whether individual is attached to bottom(< 0) or not (>0)
-            */
-            double td = i3d.interpolateBathymetricDepth(lp.getIJK());
-            double[] res = (double[]) fcnVM.calculate(new double[]{dt,depth,td,w,90.833-ss[4]});
-            w = res[0];
-            attached = res[1]<0;
-            if (attached) pos[2] = 0;//set individual on bottom
-        }
-        
-        //calculate horizontal movement
-        double[] uv = {0.0,0.0};
-        if (!attached){
-            if ((horizRWP>0)&&(Math.abs(dt)>0)) {
-                double r = Math.sqrt(horizRWP/Math.abs(dt));
-                uv[0] += r*rng.computeNormalVariate(); //stochastic swimming rate
-                uv[1] += r*rng.computeNormalVariate(); //stochastic swimming rate
-                if (debug) System.out.print("uv: "+r+"; "+uv[0]+", "+uv[1]+"\n");
-            }
-        }
-        
-        //return the result
-        return new double[]{Math.signum(dt)*uv[0],Math.signum(dt)*uv[1],Math.signum(dt)*w};
-    }
-    //WTS_NEW 2012-07-26:{
 
     /**
      *
@@ -772,27 +625,14 @@ public class BenthicJuvStage extends AbstractLHS {
           //  mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
         }
         double totRate = mortalityRate;
-       /* if ((ageInStage>=minStageDuration)) {
+        if ((ageInStage>=minStageDuration)) {
             totRate += stageTransRate;
             //apply mortality rate to previous number transitioning and
             //add in new transitioners
             numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
                     (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
-        }*/
-        //if total depth is appropriate for settlement and 
-        //indiv is near the bottom, then settle and transform to next stage.
-        if ((totalDepth>=minSettlementDepth)&&
-                (totalDepth<=maxSettlementDepth)&&
-                (depth>(totalDepth+5))) {
-            totRate += stageTransRate;
-            //apply mortality rate to previous number transitioning and
-            //add in new transitioners
-            numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
-                    (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
-       
-            number = number*Math.exp(-dt*totRate/86400);
-        //}: WTS_NEW 2012-07-26
         }
+        number = number*Math.exp(-dt*totRate/86400);
     }
     
     private void updatePosition(double[] pos) {

@@ -1,10 +1,10 @@
 /*
- * GenericLHSParameters.java
+ * EggStageParameters.java
  *
- * Created on March 20, 2012
+ * Revised 10/15/2018:
+ *   Removed all function categories except "mortality" because they
+ *     were not being used (development is hard-wired, eggs don't move).
  *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
  */
 
 package sh.pcod.EggStage;
@@ -18,9 +18,6 @@ import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
-import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
-import wts.models.DisMELS.IBMFunctions.Movement.EggAscensionRate;
-import wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMParameter;
@@ -50,11 +47,8 @@ public class EggStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 4;
-    public static final String FCAT_Development      = "development";
-    public static final String FCAT_Mortality        = "mortality";
-    public static final String FCAT_VerticalMovement = "vertical movement";
-    public static final String FCAT_VerticalVelocity = "vertical velocity";
+    public static final int numFunctionCats = 1;
+    public static final String FCAT_Mortality = "mortality";
     
     /** The 'keys' used to store the ibm functions */
     protected static final Set<String> setOfFunctionCategories = new LinkedHashSet<>(2*numFunctionCats);
@@ -102,30 +96,15 @@ public class EggStageParameters extends AbstractLHSParameters {
     @Override
     protected final void createMapToSelectedFunctions() {
         //create the set of function category keys for this class
-        setOfFunctionCategories.add(FCAT_Development);
-        setOfFunctionCategories.add(FCAT_Mortality);
-        setOfFunctionCategories.add(FCAT_VerticalMovement);
-        setOfFunctionCategories.add(FCAT_VerticalVelocity);
+       setOfFunctionCategories.add(FCAT_Mortality);
         
         //create the map from function categories to potential functions in each category
         String cat; Map<String,IBMFunctionInterface> mapOfPotentialFunctions; IBMFunctionInterface ifi;
-        cat = FCAT_Development;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(2); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new EggAscensionRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         
         cat = FCAT_Mortality;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
-        cat = FCAT_VerticalMovement;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new EggAscensionRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
-        cat = FCAT_VerticalVelocity;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(2); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new ConstantMovementRateFunction(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**
