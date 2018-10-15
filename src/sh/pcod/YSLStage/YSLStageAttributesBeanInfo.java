@@ -15,7 +15,7 @@ public class YSLStageAttributesBeanInfo extends SimpleBeanInfo {
     // Bean descriptor//GEN-FIRST:BeanDescriptor
     /*lazy BeanDescriptor*/
     private static BeanDescriptor getBdescriptor(){
-        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.YSLStage.YSLStageAttributes.class , YSLStageAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
+        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.YSLStage.YSLStageAttributes.class , sh.pcod.NonEggStageAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
 
         // Here you can add code for customizing the BeanDescriptor.
 
@@ -97,18 +97,16 @@ public class YSLStageAttributesBeanInfo extends SimpleBeanInfo {
     private static final int METHOD_getValue9 = 9;
     private static final int METHOD_getValue10 = 10;
     private static final int METHOD_getValue11 = 11;
-    private static final int METHOD_getValueAsString12 = 12;
+    private static final int METHOD_setValue12 = 12;
     private static final int METHOD_setValue13 = 13;
     private static final int METHOD_setValue14 = 14;
     private static final int METHOD_setValue15 = 15;
     private static final int METHOD_setValue16 = 16;
-    private static final int METHOD_setValue17 = 17;
-    private static final int METHOD_setValueFromString18 = 18;
 
     // Method array 
     /*lazy MethodDescriptor*/
     private static MethodDescriptor[] getMdescriptor(){
-        MethodDescriptor[] methods = new MethodDescriptor[19];
+        MethodDescriptor[] methods = new MethodDescriptor[17];
     
         try {
             methods[METHOD_clone0] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageAttributes.class.getMethod("clone", new Class[] {})); // NOI18N
@@ -135,20 +133,16 @@ public class YSLStageAttributesBeanInfo extends SimpleBeanInfo {
             methods[METHOD_getValue10].setDisplayName ( "" );
             methods[METHOD_getValue11] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("getValue", new Class[] {java.lang.String.class})); // NOI18N
             methods[METHOD_getValue11].setDisplayName ( "" );
-            methods[METHOD_getValueAsString12] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageAttributes.class.getMethod("getValueAsString", new Class[] {java.lang.String.class})); // NOI18N
-            methods[METHOD_getValueAsString12].setDisplayName ( "" );
-            methods[METHOD_setValue13] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, java.lang.Object.class})); // NOI18N
+            methods[METHOD_setValue12] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, java.lang.Object.class})); // NOI18N
+            methods[METHOD_setValue12].setDisplayName ( "" );
+            methods[METHOD_setValue13] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
             methods[METHOD_setValue13].setDisplayName ( "" );
-            methods[METHOD_setValue14] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, double.class})); // NOI18N
+            methods[METHOD_setValue14] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, float.class})); // NOI18N
             methods[METHOD_setValue14].setDisplayName ( "" );
-            methods[METHOD_setValue15] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, float.class})); // NOI18N
+            methods[METHOD_setValue15] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
             methods[METHOD_setValue15].setDisplayName ( "" );
-            methods[METHOD_setValue16] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, int.class})); // NOI18N
+            methods[METHOD_setValue16] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
             methods[METHOD_setValue16].setDisplayName ( "" );
-            methods[METHOD_setValue17] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
-            methods[METHOD_setValue17].setDisplayName ( "" );
-            methods[METHOD_setValueFromString18] = new MethodDescriptor(sh.pcod.YSLStage.YSLStageAttributes.class.getMethod("setValueFromString", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
-            methods[METHOD_setValueFromString18].setDisplayName ( "" );
         }
         catch( Exception e) {}//GEN-HEADEREND:Methods
 

@@ -1,12 +1,12 @@
 /*
- * EggStageAttributes.java
+ * YSLStageAttributes.java
  *
  * Updated 10/11/2018:
  *   Added "attached" as attribute due to changes in DisMELS framework
  *
  */
 
-package sh.pcod.EggStage;
+package sh.pcod;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -17,21 +17,21 @@ import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeBoolean;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
 
 /**
- * DisMELS class representing attributes for Pacific cod eggs.
+ * DisMELS class representing attributes for non-egg stage Pacific cod classes.
+ * @TODO: remove PROP_density and PROP_devStage(?) and associated variables.
  */
-@ServiceProvider(service=wts.models.DisMELS.framework.LifeStageAttributesInterface.class)
-public class EggStageAttributes extends AbstractLHSAttributes   {
+public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttributes {
     
     /** Number of new attributes defined by this class */
     public static final int numNewAttributes = 10;
     public static final String PROP_attached    = "attached";
     public static final String PROP_devStage    = "development stage";
-    public static final String PROP_diameter    = "egg diameter";
+    public static final String PROP_length      = "standard length";
     public static final String PROP_density     = "egg density";
     public static final String PROP_temperature = "temperature deg C";
     public static final String PROP_copepod     = "Small copepods mg/m^3 dry wt C";
     public static final String PROP_euphausiid  = "Euphausiids mg/m^3 dry wt C";
-    public static final String PROP_neocalanus  = "Neocalanoids mg/m^3 dry wt";    
+    public static final String PROP_neocalanus  = "Neocalanoids mg/m^3 dry wt";
     public static final String PROP_salinity    = "salinity";
     public static final String PROP_rho         = "in situ density";
     
@@ -42,13 +42,13 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
     protected static final Class[]  classes    = new Class[numAttributes+numNewAttributes];
     protected static final String[] shortNames = new String[numAttributes+numNewAttributes];
    
-    private static final Logger logger = Logger.getLogger(EggStageAttributes.class.getName());
+    private static final Logger logger = Logger.getLogger(AbstractNonEggStageAttributes.class.getName());
     
     /**
      * This constructor is provided only to facilitate the ServiceProvider functionality.
      * DO NOT USE IT!!
      */
-    public EggStageAttributes(){
+    protected AbstractNonEggStageAttributes(){
         super("NULL");
         finishInstantiation();
     }
@@ -56,35 +56,9 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
     /**
      * Creates a new attributes instance with type name 'typeName'.
      */
-    public EggStageAttributes(String typeName) {
+    protected AbstractNonEggStageAttributes(String typeName) {
         super(typeName);
         finishInstantiation();
-    }
-    
-    /**
-     * Returns a deep copy of the instance.  Values are copied.  
-     * Any listeners on 'this' are not(?) copied, so these need to be hooked up.
-     * @return - the clone.
-     */
-    @Override
-    public Object clone() {
-        EggStageAttributes clone = new EggStageAttributes(typeName);
-        for (String key: allKeys) clone.setValue(key,this.getValue(key));
-        return clone;
-    }
-
-    /**
-     * Returns a new instance constructed from the values of the string[].
-     * The first value in the string vector must be the type name.
-     * Values are set internally by calling setValues(strv) on the new instance.
-     * @param strv - vector of values (as Strings) 
-     * @return - the new instance
-     */
-    @Override
-    public EggStageAttributes createInstance(final String[] strv) {
-        EggStageAttributes atts = new EggStageAttributes(strv[0]);//this sets atts.typeName
-        atts.setValues(strv);
-        return atts;
     }
     
     private void finishInstantiation(){
@@ -94,7 +68,7 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
             String key;
             key = PROP_attached;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeBoolean(key,"attached"));
             key = PROP_devStage;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"devStage"));
-            key = PROP_diameter;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"diam"));
+            key = PROP_length;     newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"length"));
             key = PROP_density;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"density"));
             key = PROP_temperature;newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"temp"));
             key = PROP_copepod;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"copepod"));
@@ -111,9 +85,9 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
         //set instance information
         Map<String,Object> tmpMapValues = new HashMap<>((int)(2*(numNewAttributes+numAttributes)));
         tmpMapValues.putAll(mapValues);//copy from super
-        tmpMapValues.put(PROP_attached,   true);
+        tmpMapValues.put(PROP_attached,   false);
         tmpMapValues.put(PROP_devStage,   new Double(0));
-        tmpMapValues.put(PROP_diameter,   new Double(0));
+        tmpMapValues.put(PROP_length,     new Double(0));
         tmpMapValues.put(PROP_density,    new Double(0));
         tmpMapValues.put(PROP_temperature,new Double(-1));
         tmpMapValues.put(PROP_copepod,    new Double(-1));
@@ -151,7 +125,7 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
         return atts;
     }
     
-   /**
+       /**
      * Returns a CSV string representation of the attribute values.
      * 
      *@return - CSV string attribute values
@@ -178,8 +152,7 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
         while (it.hasNext()) str = str+cc+it.next();
         return str;
     }
-              
-    
+                
     /**
      * Returns the comma-delimited string corresponding to the attributes
      * to be used as a header for a csv file.  
@@ -193,7 +166,6 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
         while (it.hasNext()) str = str+cc+mapAllAttributes.get(it.next()).shortName;
         return str;
     }
-
     /**
      * Returns Class types for all attributes (including typeName) as a Class[]
      * in the order the allKeys are defined.
@@ -252,8 +224,8 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
             for (String key: newKeys) setValueFromString(key,strv[j++]);
         } catch (java.lang.IndexOutOfBoundsException ex) {
             //@TODO: should throw an exception here that identifies the problem
-            String[] aKeys = new String[EggStageAttributes.allKeys.size()];
-            aKeys = EggStageAttributes.allKeys.toArray(aKeys);
+            String[] aKeys = new String[AbstractNonEggStageAttributes.allKeys.size()];
+            aKeys = AbstractNonEggStageAttributes.allKeys.toArray(aKeys);
                 String str = "Missing attribute value for "+aKeys[j-1]+".\n"+
                              "Prior values are ";
                 for (int i=0;i<(j);i++) str = str+strv[i]+" ";
@@ -264,8 +236,8 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
                         javax.swing.JOptionPane.ERROR_MESSAGE);
                 throw ex;
         } catch (java.lang.NumberFormatException ex) {
-            String[] aKeys = new String[EggStageAttributes.allKeys.size()];
-            aKeys = EggStageAttributes.allKeys.toArray(aKeys);
+            String[] aKeys = new String[AbstractNonEggStageAttributes.allKeys.size()];
+            aKeys = AbstractNonEggStageAttributes.allKeys.toArray(aKeys);
             String str = "Bad attribute value for "+aKeys[j-2]+".\n"+
                          "Value was '"+strv[j-1]+"'.\n"+
                          "Entry was '";

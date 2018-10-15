@@ -1,10 +1,10 @@
 /*
- * GenericLHSParameters.java
+ * YSLStageParameters.java
  *
- * Created on March 20, 2012
+ * Revised on 10/11/2018:
+ *   Removed FCAT_Development and development functions category.
+ *   Removed EggAscensionRate function as option for vertical movement.
  *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
  */
 
 package sh.pcod.YSLStage;
@@ -19,7 +19,6 @@ import org.openide.util.lookup.ServiceProvider;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
-import wts.models.DisMELS.IBMFunctions.Movement.EggAscensionRate;
 import wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
@@ -50,8 +49,7 @@ public class YSLStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 4;
-    public static final String FCAT_Development      = "development";
+    public static final int numFunctionCats = 3;
     public static final String FCAT_Mortality        = "mortality";
     public static final String FCAT_VerticalMovement = "vertical movement";
     public static final String FCAT_VerticalVelocity = "vertical velocity";
@@ -102,17 +100,12 @@ public class YSLStageParameters extends AbstractLHSParameters {
     @Override
     protected final void createMapToSelectedFunctions() {
         //create the set of function category keys for this class
-        setOfFunctionCategories.add(FCAT_Development);
         setOfFunctionCategories.add(FCAT_Mortality);
         setOfFunctionCategories.add(FCAT_VerticalMovement);
         setOfFunctionCategories.add(FCAT_VerticalVelocity);
         
         //create the map from function categories to potential functions in each category
         String cat; Map<String,IBMFunctionInterface> mapOfPotentialFunctions; IBMFunctionInterface ifi;
-        cat = FCAT_Development;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(2); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new EggAscensionRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        
         cat = FCAT_Mortality;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
@@ -120,7 +113,6 @@ public class YSLStageParameters extends AbstractLHSParameters {
         
         cat = FCAT_VerticalMovement;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new EggAscensionRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         
         cat = FCAT_VerticalVelocity;  

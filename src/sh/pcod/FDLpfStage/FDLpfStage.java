@@ -1,10 +1,12 @@
 /*
- * Postflexion Pcod Larval Stage
- * Devstage = 3
- * Created on January 24, 2006, 11:33 AM
+ * FDLpfStage.java
  *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+ * Revised 10/11/2018:
+ *   Removed fcnDevelopment to match Parameters class.
+ *   Removed fcnVV because calculation for w is hard-wired in calcUVW.
+ *   Added "attached" as new attribute (necessary with updated DisMELS).
+ *   Removed "diam" since it's replaced by "length"
+ *
  */
 
 package sh.pcod.FDLpfStage;
@@ -19,9 +21,9 @@ import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
-import wts.models.utilities.ModelCalendar;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.FDLStage.FDLStageAttributes;
+import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
 /**
@@ -69,11 +71,11 @@ public class FDLpfStage extends AbstractLHS {
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
-    /** development stage,0=egg,1=ysl,2=fdl,3=epijuv,4=juv */
+    /** flag indicating individual is attached to bottom */
+    protected boolean attached = false;
+    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
     protected double devStage;
-    /** egg diameter (mm) */
-    protected double diam = 0;
-    /** density of egg [kg/m^3]) */
+    /** density of egg [kg/m^3]--not used */
     protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
@@ -103,14 +105,10 @@ public class FDLpfStage extends AbstractLHS {
     /** total depth (m) at individual's position */
     private double totalDepth;
     
-    /** IBM function selected for development */
-    private IBMFunctionInterface fcnDevelopment = null; 
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
-    /** IBM function selected for vertical velocity */
-    private IBMFunctionInterface fcnVV = null; 
     
     private static final Logger logger = Logger.getLogger(FDLpfStage.class.getName());
     
@@ -390,10 +388,8 @@ public class FDLpfStage extends AbstractLHS {
             params = (FDLpfStageParameters) newParams;
             super.params = params;
             setParameterValues();
-            fcnDevelopment = params.getSelectedIBMFunctionForCategory(FDLpfStageParameters.FCAT_Development);
             fcnMortality = params.getSelectedIBMFunctionForCategory(FDLpfStageParameters.FCAT_Mortality);
             fcnVM = params.getSelectedIBMFunctionForCategory(FDLpfStageParameters.FCAT_VerticalMovement);
-            fcnVV = params.getSelectedIBMFunctionForCategory(FDLpfStageParameters.FCAT_VerticalVelocity);
         } else {
             //TODO: throw some error
         }
@@ -448,8 +444,7 @@ public class FDLpfStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         
-        //if(length >= flexion) {
-          if(length >= 25.0) {
+        if(length >= 25.0) {
            devStage = 4;   
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
@@ -622,8 +617,7 @@ public class FDLpfStage extends AbstractLHS {
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
         time = time+dt;
-        //TODO: need to update devStage, diam, density, number
-        devStage = 3;
+        //TODO: need to update length, number
         
         //SH_NEW:{
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
@@ -639,14 +633,6 @@ public class FDLpfStage extends AbstractLHS {
         //Need Swimspeed
         //Preflexion larval depth: 0-40m
 
-        diam =length;
-        //density = length;
-
-        //if (length >= flexion) devStage=3;        
-        //System.out.print("stagedurYSL = " + stagedur);
-        // Use diam variable to test my new algorithms as it is output...
-        //}:SH_NEW
-        
         updateNum(dt);
         updateAge(dt);
         updatePosition(pos);
@@ -705,7 +691,16 @@ public class FDLpfStage extends AbstractLHS {
             * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
             * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
             */
-            double[] ss = DateTimeFunctions.computeSunriseSunset(lon,lat,ModelCalendar.getCalendar().getYearDay());
+            CalendarIF cal = null;
+            double[] ss = null;
+            try {
+                cal = GlobalInfo.getInstance().getCalendar();
+                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
+            } catch(java.lang.NullPointerException ex){
+                logger.info("NullPointerException for FDLpfStage id: "+id);
+                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
+                logger.info(ex.getMessage());
+            }
             /**
             * @param vars - the inputs variables as a double[] array with elements
             *                  dt          - [0] - integration time step
@@ -745,8 +740,8 @@ public class FDLpfStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateAge(double dt) {
-        age        = age+dt/86400;
-        ageInStage = ageInStage+dt/86400;
+        age        += dt/86400;
+        ageInStage += dt/86400;
         if (ageInStage>maxStageDuration) {
             alive = false;
             active = false;
@@ -764,7 +759,7 @@ public class FDLpfStage extends AbstractLHS {
             mortalityRate = (Double)fcnMortality.calculate(null);
         } else 
         if (fcnMortality instanceof InversePowerLawMortalityRate){
-          //  mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+          //  mortalityRate = (Double)fcnMortality.calculate(length);//using length as covariate for mortality
         }
         double totRate = mortalityRate;
         if ((ageInStage>=minStageDuration)) {
@@ -913,6 +908,7 @@ private double trian(double tmin,double tmode,double tmax)
     @Override
     protected void updateAttributes() {
         super.updateAttributes();
+        atts.setValue(FDLpfStageAttributes.PROP_attached,attached);
         atts.setValue(FDLpfStageAttributes.PROP_density,density);
         atts.setValue(FDLpfStageAttributes.PROP_devStage,devStage);
         atts.setValue(FDLpfStageAttributes.PROP_length,length);
@@ -927,9 +923,10 @@ private double trian(double tmin,double tmode,double tmax)
     @Override
     protected void updateVariables() {
         super.updateVariables();
+        attached    = atts.getValue(FDLpfStageAttributes.PROP_attached,attached);
         density     = atts.getValue(FDLpfStageAttributes.PROP_density,density);
         devStage    = atts.getValue(FDLpfStageAttributes.PROP_devStage,devStage);
-        length        = atts.getValue(FDLpfStageAttributes.PROP_length,length);
+        length      = atts.getValue(FDLpfStageAttributes.PROP_length,length);
         rho         = atts.getValue(FDLpfStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(FDLpfStageAttributes.PROP_salinity,salinity);
         temperature = atts.getValue(FDLpfStageAttributes.PROP_temperature,temperature);

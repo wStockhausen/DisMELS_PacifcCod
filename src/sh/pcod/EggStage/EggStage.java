@@ -1,10 +1,11 @@
 /*
- * Pcod Eggstage -SH  8/2012
- *   devStage=0
- * Created on January 24, 2006, 11:33 AM
+ * EggStage.java
+ *   devStage = 0
  *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+ * Revised 10/11/2018:
+ *   Added "attached" as new attribute (necessary with updated DisMELS).
+ *   Revised for compatibility with DisMELS (branch DisMELS_2.0SnowCrab).
+ *
  */
 
 package sh.pcod.EggStage;
@@ -18,18 +19,22 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
+import wts.models.utilities.CalendarIF;
 import wts.models.utilities.DateTimeFunctions;
-import wts.models.utilities.ModelCalendar;
 import wts.roms.model.Interpolator3D;
 import wts.roms.model.LagrangianParticle;
 
 /**
  *
  * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageInterface.class)
 public class EggStage extends AbstractLHS {
     
+    /** the DisMELS globalInfo object */
+    protected static final GlobalInfo globalInfo = GlobalInfo.getInstance();
+
         //Static fields    
             //  Static fields new to this class
     /* flag to do debug operations */
@@ -68,28 +73,27 @@ public class EggStage extends AbstractLHS {
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
-    /** development stage, 0=egg,1=ysl,2=fdl,3=epijuv,4=juv */
+    /** flag indicating individual is attached to bottom */
+    protected boolean attached = true;
+    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
     protected double devStage = 0;
-    /** egg diameter (mm) SH_NEW, diam replaced by length*/
+    /** egg diameter (mm) */
     protected double diam = 0;
-    /** density of egg [kg/m^3]) */
+    /** density of egg [kg/m^3] */
     protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-    /** in situ copepod density mg/m^3, dry wt)) */
-    protected double copepod = 0;    /** in situ small copepods */
-     /** in situ euphausiid density mg/m^3, dry wt)) */
-    protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density mg/m^3, dry wt)) */
-    protected double neocalanus = 0;    /** in situ large copepods */    
+    /** in situ copepod density mg/m^3, dry wt */
+    protected double copepod = 0; 
+     /** in situ euphausiid density mg/m^3, dry wt */
+    protected double euphausiid = 0;
+     /** in situ neocalanoid density mg/m^3, dry wt */
+    protected double neocalanus = 0;
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    //SH_NEW variables
-    /**growth in Length mm/d */
-    protected double gL = 0;
-        /**Embryo Length variable (mm) */
-    protected double length = 0;
+    /**growth in egg diameter mm/d */
+    protected double gD = 0;
     /**Egg stage duration and progression through stage*/
     protected double stagedur = 0;
     protected double stageratio = 0;
@@ -517,17 +521,26 @@ public class EggStage extends AbstractLHS {
         zPos       = atts.getValue(EggStageAttributes.PROP_vertPos,zPos);
         time       = startTime;
         numTrans   = 0.0; //set numTrans to zero
-        logger.info(hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
+        if (debug) logger.info(hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
         if (i3d!=null) {
             double[] IJ = new double[] {xPos,yPos};
-            if (hType==Types.HORIZ_XY) {
-                IJ = i3d.getGrid().computeIJfromXY(xPos,yPos);
-            } else if (hType==Types.HORIZ_LL) {
-//                if (xPos<0) xPos=xPos+360;
-                IJ = i3d.getGrid().computeIJfromLL(yPos,xPos);
+            try {
+                if (hType==Types.HORIZ_XY) {
+                    IJ = i3d.getGrid().computeIJfromXY(xPos,yPos);
+                } else if (hType==Types.HORIZ_LL) {
+                    IJ = i3d.getGrid().computeIJfromLL(yPos,xPos);
+                }
+            } catch(java.lang.ArrayIndexOutOfBoundsException ex) {
+                logger.info("ArrayIndexOutOfBoundsException in EggStage.initialize() for id "+id);
+                logger.info("--IJ info : "+hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
+                throw(ex);
+            } catch(java.lang.NullPointerException ex) {
+                logger.info("NullPointerException in EggStage.initialize() for id "+id);
+                logger.info("--IJ info : "+hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
+                throw(ex);
             }
             double z = i3d.interpolateBathymetricDepth(IJ);
-            logger.info("Bathymetric depth = "+z);
+            if (debug) logger.info("Bathymetric depth = "+z);
             double ssh = i3d.interpolateSSH(IJ);
 
             double K = 0;  //set K = 0 (at bottom) as default
@@ -619,25 +632,13 @@ public class EggStage extends AbstractLHS {
         euphausiid = 0.5 * (euphausiid + eup1);
         neocalanus = 0.5 * (neocalanus + nca1);
         
-        
-        //diam = copepod;
-        
-        //density = euphausiid;
-        //rho= neocalanus;
-        
         //SH_NEW:{
         double dtday = dt/86400;
-        gL = (0.104 + (0.024 * T) - (0.00002 * T * T));  // Hurst et al 2010, embryo eqn
-        length = length + (gL * dtday);
+        gD = (0.104 + (0.024 * T) - (0.00002 * T * T));  // Hurst et al 2010, embryo eqn
+        diam += (gD * dtday);
         stagedur = 46.597 - (4.079 * T);
         //stagedur = 44.4857 - (7.3857*T) + (0.4524*T*T);
         stageratio = stageratio + ((1.0 / stagedur)*dtday);
-        //if(stageratio>=1.0)devStage = 1;
-        //System.out.print("stageratio = " + stageratio);
-        // Use extra variable to write out prey variables
-        diam = length;
-        //density = length;
-        //}:SH_NEW
         
         updateNum(dt);
         updateAge(dt);
@@ -660,6 +661,7 @@ public class EggStage extends AbstractLHS {
     /**
      * Function to calculate movement rates.
      * 
+     * @param pos - position vector
      * @param dt - time step
      * @return 
      */
@@ -708,7 +710,16 @@ public class EggStage extends AbstractLHS {
             * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
             * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
             */
-            double[] ss = DateTimeFunctions.computeSunriseSunset(lon,lat,ModelCalendar.getCalendar().getYearDay());
+            CalendarIF cal = null;
+            double[] ss = null;
+            try {
+                cal = GlobalInfo.getInstance().getCalendar();
+                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
+            } catch(java.lang.NullPointerException ex){
+                logger.info("NullPointerException for EggStage id: "+id);
+                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
+                logger.info(ex.getMessage());
+            }
             /**
             * @param vars - the inputs variables as a double[] array with elements
             *                  dt          - [0] - integration time step
@@ -748,8 +759,8 @@ public class EggStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateAge(double dt) {
-        age        = age+dt/86400;
-        ageInStage = ageInStage+dt/86400;
+        age        += dt/86400;
+        ageInStage += dt/86400;
         if (ageInStage>maxStageDuration) {
             alive = false;
             active = false;
@@ -875,12 +886,10 @@ public class EggStage extends AbstractLHS {
     @Override
     protected void updateAttributes() {
         super.updateAttributes();
+        atts.setValue(EggStageAttributes.PROP_attached,attached);
         atts.setValue(EggStageAttributes.PROP_density,density);
         atts.setValue(EggStageAttributes.PROP_devStage,devStage);
         atts.setValue(EggStageAttributes.PROP_diameter,diam);
-        //SH_NEW
-        //atts.setValue(EggStageAttributes.PROP_length,length);
-
         atts.setValue(EggStageAttributes.PROP_rho,rho);
         atts.setValue(EggStageAttributes.PROP_salinity,salinity);
         atts.setValue(EggStageAttributes.PROP_temperature,temperature);
@@ -896,19 +905,16 @@ public class EggStage extends AbstractLHS {
     @Override
     protected void updateVariables() {
         super.updateVariables();
+        attached    = atts.getValue(EggStageAttributes.PROP_attached,attached);
         density     = atts.getValue(EggStageAttributes.PROP_density,density);
         devStage    = atts.getValue(EggStageAttributes.PROP_devStage,devStage);
-        //SH_NEW
         diam        = atts.getValue(EggStageAttributes.PROP_diameter,diam);
-        //length        = atts.getValue(EggStageAttributes.PROP_length,length);
-         rho        = atts.getValue(EggStageAttributes.PROP_rho,rho);
+        rho         = atts.getValue(EggStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(EggStageAttributes.PROP_salinity,salinity);
         temperature = atts.getValue(EggStageAttributes.PROP_temperature,temperature);
         copepod     = atts.getValue(EggStageAttributes.PROP_copepod,copepod);
         euphausiid  = atts.getValue(EggStageAttributes.PROP_euphausiid,euphausiid);
         neocalanus  = atts.getValue(EggStageAttributes.PROP_neocalanus,neocalanus);
-       
-        
     }
 
 }

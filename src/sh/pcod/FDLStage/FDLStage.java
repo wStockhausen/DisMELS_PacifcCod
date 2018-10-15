@@ -1,10 +1,13 @@
 /*
- * Preflexion Pcod Larval Stage
- * Devstage = 3
- * Created on January 24, 2006, 11:33 AM
+ * FDLStage.java
  *
- * To change this template, choose Tools | Template Manager
- * and open the template in the editor.
+ * Revised 10/11/2018:
+ *   Corrected gL formula.
+ *   Removed fcnDevelopment to match Parameters class.
+ *   Removed fcnVV because calculation for w is hard-wired in calcUVW.
+ *   Added "attached" as new attribute (necessary with updated DisMELS).
+ *   Removed "diam" since it's replaced by "length"
+ *
  */
 
 package sh.pcod.FDLStage;
@@ -19,9 +22,9 @@ import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
-import wts.models.utilities.ModelCalendar;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.YSLStage.YSLStageAttributes;
+import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
 /**
@@ -68,22 +71,23 @@ public class FDLStage extends AbstractLHS {
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
+    /** flag indicating individual is attached to bottom */
+    protected boolean attached = false;
     /** development stage,0=egg,1=ysl,2=fdl,3=fdlpf, 4=epijuv,5=juv */
-    protected double devStage;
-    /** egg diameter (mm) */
-    protected double diam = 0;
-    /** density of egg [kg/m^3]) */
+    protected double devStage = 2;
+    /** density of egg [kg/m^3]--not used */
     protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-    /** in situ salinity */
+     /** in situ copepod density mg/m^3, dry wt */
      protected double copepod;    /** in situ small copepods */
-     /** in situ euphausiid density mg/m^3, dry wt)) */
+     /** in situ euphausiid density mg/m^3, dry wt */
     protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density mg/m^3, dry wt)) */
+     /** in situ neocalanoid density mg/m^3, dry wt */
     protected double neocalanus = 0;    /** in situ large copepods */      
      
     
+    /** in situ salinity */
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
@@ -104,14 +108,10 @@ public class FDLStage extends AbstractLHS {
     /** total depth (m) at individual's position */
     private double totalDepth;
     
-    /** IBM function selected for development */
-    private IBMFunctionInterface fcnDevelopment = null; 
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
-    /** IBM function selected for vertical velocity */
-    private IBMFunctionInterface fcnVV = null; 
     
     private static final Logger logger = Logger.getLogger(FDLStage.class.getName());
     
@@ -393,10 +393,8 @@ public class FDLStage extends AbstractLHS {
             params = (FDLStageParameters) newParams;
             super.params = params;
             setParameterValues();
-            fcnDevelopment = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_Development);
             fcnMortality = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_Mortality);
             fcnVM = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_VerticalMovement);
-           // fcnVV = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_VerticalVelocity);
         } else {
             //TODO: throw some error
         }
@@ -627,41 +625,22 @@ public class FDLStage extends AbstractLHS {
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
         time = time+dt;
-        //TODO: need to update devStage, diam, density, number
-        devStage=2;
+        //need to update length, number
        
-        //SH - Prey stuff        
-        double cop1;
-        cop1 = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        double eup1;
-        eup1 = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        double nca1;
-        nca1 = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-       
-        
         //SH_NEW:{
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
         //flexion = trian(10.0,13.5,17.0); // ??? What should I use here
         //flexion = 10.0;
         //Growth in length
         gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
-        length = length + (gL*dtday);
+        length += (gL*dtday);
         
         //Need Mortality
         
         //No DVM until after flexion - next stage
         //Preflexion larval depth: 0-40m
         //Need Swimspeed
-        diam = length;
-        //density = length;
-        //if (length >= flexion) devStage=3;
-  
-     
-    
         
-        
-        //System.out.print("stagedurYSL = " + stagedur);
-        // Use diam variable to test my new algorithms as it is output...
         //}:SH_NEW
         
         updateNum(dt);
@@ -722,7 +701,16 @@ public class FDLStage extends AbstractLHS {
             * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
             * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
             */
-            double[] ss = DateTimeFunctions.computeSunriseSunset(lon,lat,ModelCalendar.getCalendar().getYearDay());
+            CalendarIF cal = null;
+            double[] ss = null;
+            try {
+                cal = GlobalInfo.getInstance().getCalendar();
+                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
+            } catch(java.lang.NullPointerException ex){
+                logger.info("NullPointerException for EggStage id: "+id);
+                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
+                logger.info(ex.getMessage());
+            }
             /**
             * @param vars - the inputs variables as a double[] array with elements
             *                  dt          - [0] - integration time step
@@ -762,8 +750,8 @@ public class FDLStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateAge(double dt) {
-        age        = age+dt/86400;
-        ageInStage = ageInStage+dt/86400;
+        age        += dt/86400;
+        ageInStage += dt/86400;
         if (ageInStage>maxStageDuration) {
             alive = false;
             active = false;
@@ -925,17 +913,21 @@ private double trian(double tmin,double tmode,double tmax)
     }
     
     /**
-     * Updates attribute values defined for this abstract class. 
+     * Updates attribute values defined for this class. 
      */
     @Override
     protected void updateAttributes() {
         super.updateAttributes();
+        atts.setValue(FDLStageAttributes.PROP_attached,attached);
         atts.setValue(FDLStageAttributes.PROP_density,density);
         atts.setValue(FDLStageAttributes.PROP_devStage,devStage);
         atts.setValue(FDLStageAttributes.PROP_length,length);
         atts.setValue(FDLStageAttributes.PROP_rho,rho);
         atts.setValue(FDLStageAttributes.PROP_salinity,salinity);
         atts.setValue(FDLStageAttributes.PROP_temperature,temperature);    
+        atts.setValue(FDLStageAttributes.PROP_copepod,copepod);
+        atts.setValue(FDLStageAttributes.PROP_euphausiid,euphausiid);
+        atts.setValue(FDLStageAttributes.PROP_neocalanus,neocalanus);
     }
 
     /**
@@ -944,17 +936,16 @@ private double trian(double tmin,double tmode,double tmax)
     @Override
     protected void updateVariables() {
         super.updateVariables();
+        attached     = atts.getValue(FDLStageAttributes.PROP_attached,attached);
         density     = atts.getValue(FDLStageAttributes.PROP_density,density);
         devStage    = atts.getValue(FDLStageAttributes.PROP_devStage,devStage);
-        length        = atts.getValue(FDLStageAttributes.PROP_length,length);
+        length      = atts.getValue(FDLStageAttributes.PROP_length,length);
         rho         = atts.getValue(FDLStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(FDLStageAttributes.PROP_salinity,salinity);
         temperature = atts.getValue(FDLStageAttributes.PROP_temperature,temperature);
-        copepod         = atts.getValue(FDLStageAttributes.PROP_copepod,copepod);
-        euphausiid         = atts.getValue(FDLStageAttributes.PROP_euphausiid,euphausiid);
-        neocalanus          = atts.getValue(FDLStageAttributes.PROP_neocalanus,neocalanus);
- 
-      
+        copepod     = atts.getValue(FDLStageAttributes.PROP_copepod,copepod);
+        euphausiid  = atts.getValue(FDLStageAttributes.PROP_euphausiid,euphausiid);
+        neocalanus  = atts.getValue(FDLStageAttributes.PROP_neocalanus,neocalanus);
      }
 
 }

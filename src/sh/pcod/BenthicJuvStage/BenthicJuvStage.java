@@ -1,5 +1,13 @@
 /*
  * BenthicJuvStage.java
+ *
+ * Revised 10/11/2018:
+ *   Corrected gL formula.
+ *   Removed fcnDevelopment to match Parameters class.
+ *   Removed fcnVV because calculation for w is hard-wired to 0 in calcUVW.
+ *   Added "attached" as new attribute (necessary with updated DisMELS).
+ *   Removed "diam" since it's replaced by "length"
+ *
  */
 
 package sh.pcod.BenthicJuvStage;
@@ -14,9 +22,9 @@ import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
-import wts.models.utilities.ModelCalendar;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.EpijuvStage.EpijuvStageAttributes;
+import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
 /**
@@ -64,11 +72,11 @@ public class BenthicJuvStage extends AbstractLHS {
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
-    /** development stage,0=egg,1=ysl,2=fdl,3=epijuvFDLpf,4=Epijuv, 5=BenthicJuv */
+    /** flag indicating individual is attached to bottom */
+    protected boolean attached = true;
+    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
     protected double devStage = 5;
-    /** egg diameter (mm) */
-    protected double diam = 0;
-    /** density of egg [kg/m^3]) */
+    /** density of egg [kg/m^3]--not used */
     protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
@@ -99,19 +107,15 @@ public class BenthicJuvStage extends AbstractLHS {
     /** total depth (m) at individual's position */
     private double totalDepth;
     
-    /** IBM function selected for development */
-    private IBMFunctionInterface fcnDevelopment = null; 
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
-    /** IBM function selected for vertical velocity */
-    private IBMFunctionInterface fcnVV = null; 
     
     private static final Logger logger = Logger.getLogger(BenthicJuvStage.class.getName());
     
     /**
-     * Creates a new instance of GenericLHS.  
+     * Creates a new instance of BenthicJuvStage.  
      *  This constructor should be used ONLY to obtain
      *  the class names of the associated classes.
      * DO NOT DELETE THIS CONSTRUCTOR!!
@@ -123,7 +127,7 @@ public class BenthicJuvStage extends AbstractLHS {
     }
     
     /**
-     * Creates a new instance of SimplePelagicLHS with the given typeName.
+     * Creates a new instance of BenthicJuvStage with the given typeName.
      * A new id number is calculated in the superclass and assigned to
      * the new instance's id, parentID, and origID. 
      * 
@@ -386,10 +390,8 @@ public class BenthicJuvStage extends AbstractLHS {
             params = (BenthicJuvStageParameters) newParams;
             super.params = params;
             setParameterValues();
-            fcnDevelopment = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_Development);
             fcnMortality = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_Mortality);
             fcnVM = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_VerticalMovement);
-            fcnVV = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_VerticalVelocity);
         } else {
             //TODO: throw some error
         }
@@ -631,38 +633,20 @@ public class BenthicJuvStage extends AbstractLHS {
         }
         time = time+dt;
         
-        
-        //TODO: need to update devStage, diam, density, number
-        devStage = 5;
-        
         //SH_NEW:{
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
-        //flexion = trian(10.0,13.5,17.0); // ??? What should I use here
-        //flexion = 10.0;
         //Growth in length
         if(T<=0.0) T=0.01; 
         gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//Hurst et al 2010, juvenile eq, mm per day
-        length = length + (gL*dtday);
+        length += (gL*dtday);
         
         
         //Need Mortality
         
-        //No DVM until after flexion - next stage
-        //Need Swimspeed
-        //Preflexion larval depth: 0-40m
-
-        diam = length;
-        //density = length;
-
-        //if (length >= flexion) devStage=3;        
-        //System.out.print("stagedurYSL = " + stagedur);
-        // Use diam variable to test my new algorithms as it is output...
-        //}:SH_NEW
-        
         updateNum(dt);
         updateAge(dt);
         //SH_NEW 9_14
-        //updatePosition(pos);
+        //updatePosition(pos); <-BenthicJuvs do not move!!
         interpolateEnvVars(pos);
         //check for exiting grid
         //SH_NEW: remove this so they don't die when nearshore
@@ -717,7 +701,16 @@ public class BenthicJuvStage extends AbstractLHS {
             * (if lat*declination>0, it's summer in the hemisphere, hence daytime). 
             * Alternatively, if the solar zenith angle > 90.833 deg, then it is night.
             */
-            double[] ss = DateTimeFunctions.computeSunriseSunset(lon,lat,ModelCalendar.getCalendar().getYearDay());
+            CalendarIF cal = null;
+            double[] ss = null;
+            try {
+                cal = GlobalInfo.getInstance().getCalendar();
+                ss = DateTimeFunctions.computeSunriseSunset(lon,lat,cal.getYearDay());
+            } catch(java.lang.NullPointerException ex){
+                logger.info("NullPointerException for EggStage id: "+id);
+                logger.info("lon: "+lon+". lat: "+lat+". yearday: "+cal.getYearDay());
+                logger.info(ex.getMessage());
+            }
             /**
             * @param vars - the inputs variables as a double[] array with elements
             *                  dt          - [0] - integration time step
@@ -757,8 +750,8 @@ public class BenthicJuvStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateAge(double dt) {
-        age        = age+dt/86400;
-        ageInStage = ageInStage+dt/86400;
+        age        += dt/86400;
+        ageInStage += dt/86400;
         if (ageInStage>maxStageDuration) {
             alive = false;
             active = false;
@@ -797,9 +790,9 @@ public class BenthicJuvStage extends AbstractLHS {
             numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
                     (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
        
-        number = number*Math.exp(-dt*totRate/86400);
+            number = number*Math.exp(-dt*totRate/86400);
         //}: WTS_NEW 2012-07-26
-    }
+        }
     }
     
     private void updatePosition(double[] pos) {
@@ -817,48 +810,6 @@ public class BenthicJuvStage extends AbstractLHS {
         if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
     }
-
-/************************************************************************/
-/*	trian(tmin,tmode,tmax)	-SH code 8/2012		*/
-/************************************************************************/
-
-/*trian.c - Program returns a random deviate from a triangular       */
-/*  distribution.			  	  Oct. 25,1996  -SH  */
-
-/* tmin is the minimum value
-   tmode is the mode
-   tmax is the maximum value
-   tdev is the returned deviate
-*/
-
-private double trian(double tmin,double tmode,double tmax) 
-
-{
-  int i;
-  double tdev=0.0,u,x=0.0;
-
-/*Generate triangular deviate for t(0,1)*/
-
-    u = Math.random();
-
-    if(u<=0.5)  x = Math.sqrt(0.5*u);
-    if(u>0.5)   x = 1.0 - Math.sqrt(0.5*(1.0-u));
- 
-    if(x<0.0)   x = 0.0;
-    if(x>1.0)   x = 1.0;
-
-/*Convert to triangular with tmin,tmode,tmax*/
-
-    if(x<=0.5)  tdev = tmin + 2.0*(tmode-tmin)*x;
-    if(x>0.5)   tdev = 2.0*tmode-tmax+2.0*(tmax-tmode)*x;
-
-    return tdev;
-
-}
-
-/************************************************************************/
-/*				end trian()				*/
-/************************************************************************/
 
     @Override
     public double getStartTime() {
@@ -932,11 +883,12 @@ private double trian(double tmin,double tmode,double tmax)
     }
     
     /**
-     * Updates attribute values defined for this abstract class. 
+     * Updates attribute values defined for this class. 
      */
     @Override
     protected void updateAttributes() {
         super.updateAttributes();
+        atts.setValue(BenthicJuvStageAttributes.PROP_attached,attached);
         atts.setValue(BenthicJuvStageAttributes.PROP_density,density);
         atts.setValue(BenthicJuvStageAttributes.PROP_devStage,devStage);
         atts.setValue(BenthicJuvStageAttributes.PROP_length,length);
@@ -951,9 +903,10 @@ private double trian(double tmin,double tmode,double tmax)
     @Override
     protected void updateVariables() {
         super.updateVariables();
+        attached    = atts.getValue(BenthicJuvStageAttributes.PROP_attached,attached);
         density     = atts.getValue(BenthicJuvStageAttributes.PROP_density,density);
         devStage    = atts.getValue(BenthicJuvStageAttributes.PROP_devStage,devStage);
-        length        = atts.getValue(BenthicJuvStageAttributes.PROP_length,length);
+        length      = atts.getValue(BenthicJuvStageAttributes.PROP_length,length);
         rho         = atts.getValue(BenthicJuvStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(BenthicJuvStageAttributes.PROP_salinity,salinity);
         temperature = atts.getValue(BenthicJuvStageAttributes.PROP_temperature,temperature);
