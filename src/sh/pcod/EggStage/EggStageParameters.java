@@ -65,8 +65,8 @@ public class EggStageParameters extends AbstractLHSParameters {
      */
     public EggStageParameters() {
         super("",numParams,numFunctionCats);
-        createMapToValues();
-        createMapToSelectedFunctions();
+        createMapToParameters();
+        createMapToPotentialFunctions();
         propertySupport =  new PropertyChangeSupport(this);
     }
     
@@ -75,8 +75,8 @@ public class EggStageParameters extends AbstractLHSParameters {
      */
     public EggStageParameters(String typeName) {
         super(typeName,numParams,numFunctionCats);
-        createMapToValues();
-        createMapToSelectedFunctions();
+        createMapToParameters();
+        createMapToPotentialFunctions();
         propertySupport =  new PropertyChangeSupport(this);
     }
     
@@ -84,7 +84,7 @@ public class EggStageParameters extends AbstractLHSParameters {
      * This creates the basic parameters mapParams.
      */
     @Override
-    protected final void createMapToValues() {
+    protected final void createMapToParameters() {
         String key;
         key = PARAM_isSuperIndividual;    setOfParamKeys.add(key); mapParams.put(key,new IBMParameterBoolean(key,key,false));
         key = PARAM_horizRWP;             setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
@@ -94,7 +94,7 @@ public class EggStageParameters extends AbstractLHSParameters {
     }
 
     @Override
-    protected final void createMapToSelectedFunctions() {
+    protected final void createMapToPotentialFunctions() {
         //create the set of function category keys for this class
        setOfFunctionCategories.add(FCAT_Mortality);
         
@@ -106,45 +106,7 @@ public class EggStageParameters extends AbstractLHSParameters {
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
-    
-    /**
-     * Returns the IBMFunctionInterface object corresponding to the 
-     * given category and function key. 
-     * 
-     * As a DEFAULT IMPLEMENTATION, this method throws an UnsupportedOperationException 
-     * 
-     * This method SHOULD BE OVERRIDDEN by subclasses that use IBMFunctions.
-     * 
-     * @param cat  - usage category 
-     * @param name - function name
-     * @return   - the model function
-     */
-    @Override
-    public IBMFunctionInterface getIBMFunction(String cat, String key){
-        return mapOfPotentialFunctionsByCategory.get(cat).get(key);    
-    }
-
-    @Override
-    public Set<String> getIBMFunctionCategories(){
-        return mapOfPotentialFunctionsByCategory.keySet();
-    }
-    
-    @Override
-    public Set<String> getIBMFunctionNamesByCategory(String cat){
-        return mapOfPotentialFunctionsByCategory.get(cat).keySet();
-    }
-    
-    @Override
-   public void selectIBMFunctionForCategory(String cat, String key){
-        IBMFunctionInterface ifi = mapOfPotentialFunctionsByCategory.get(cat).get(key);
-        mapOfSelectedFunctionsByCategory.put(cat,ifi);
-    }
-
-    @Override
-    public Set<String> getIBMParameterNames() {
-        return setOfParamKeys;
-    }
-    
+        
     /**
      * Returns a deep copy of the instance.  Values are copied.  
      * Any listeners on 'this' are not(?) copied, so these need to be hooked up.
@@ -159,7 +121,7 @@ public class EggStageParameters extends AbstractLHSParameters {
                 clone.setValue(pKey,this.getValue(pKey));
             }
             for (String fcKey: setOfFunctionCategories) {
-                Set<String> fKeys = this.getIBMFunctionNamesByCategory(fcKey);
+                Set<String> fKeys = this.getIBMFunctionKeysByCategory(fcKey);
                 IBMFunctionInterface sfi = this.getSelectedIBMFunctionForCategory(fcKey);
                 for (String fKey: fKeys){
                     IBMFunctionInterface tfi = this.getIBMFunction(fcKey, fKey);
@@ -168,7 +130,7 @@ public class EggStageParameters extends AbstractLHSParameters {
                     for (String pKey: pKeys) {
                         cfi.setParameterValue(pKey, tfi.getParameter(pKey).getValue());
                     }
-                    if (sfi==tfi) clone.selectIBMFunctionForCategory(fcKey, fKey);
+                    if (sfi==tfi) clone.setSelectedIBMFunctionForCategory(fcKey, fKey);
                 }
             }
             clone.propertySupport = new PropertyChangeSupport(clone);
@@ -179,24 +141,16 @@ public class EggStageParameters extends AbstractLHSParameters {
     }
 
     /**
-     *  Creates an instance of SimplePelagicLHSParameters.
+     * This method is not supported in this implementation.
      *
-     *@param strv - array of values (as Strings) used to create the new instance. 
+     * @param strv - array of values (as Strings) used to create the new instance. 
      *              This should be typeName followed by parameter value (as Strings)
      *              in the same order as the keys.
+     * @return 
      */
     @Override
     public EggStageParameters createInstance(final String[] strv) {
-        int c = 0;
-        EggStageParameters params = new EggStageParameters(strv[c++]);
-        for (String key: setOfParamKeys) params.setValueFromString(key,strv[c++]);
-        return params;
-    }
-    
-    private void setValueFromString(String key, String value) throws NumberFormatException {
-        IBMParameter param = mapParams.get(key);
-        param.parseValue(value);
-        setValue(key,param.getValue());
+        throw new UnsupportedOperationException("Not supported.");
     }
 
     /**
