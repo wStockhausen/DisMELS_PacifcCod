@@ -106,8 +106,6 @@ public class EggStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    /** total depth (m) at individual's position */
-    private double totalDepth;
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
@@ -650,7 +648,7 @@ public class EggStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        totalDepth = i3d.interpolateBathymetricDepth(pos);
+        bathym     = i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
         lat        = i3d.interpolateLat(pos);
         lon        = i3d.interpolateLon(pos);

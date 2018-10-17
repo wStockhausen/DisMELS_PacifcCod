@@ -101,8 +101,6 @@ public class FDLpfStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    /** total depth (m) at individual's position */
-    private double totalDepth;
     /**growth in length mm/d */
     protected double gL = 0;
     /**FDLpf maximum size = random between 25-35.  Stays the same at each time step*/
@@ -666,7 +664,7 @@ public class FDLpfStage extends AbstractLHS {
                 //Make w meters/sec
                 w=w/1000.0;
                 //density = w;
-                //density = totalDepth;
+                //density = bathym;
             
             /**
             * Compute time of local sunrise, sunset and solar noon (in minutes, UTC) 
@@ -766,7 +764,7 @@ public class FDLpfStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        totalDepth = i3d.interpolateBathymetricDepth(pos);
+        bathym     = i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
         lat        = i3d.interpolateLat(pos);
         lon        = i3d.interpolateLon(pos);

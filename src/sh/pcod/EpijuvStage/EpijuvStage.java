@@ -111,8 +111,6 @@ public class EpijuvStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    /** total depth (m) at individual's position */
-    private double totalDepth;
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
@@ -459,9 +457,9 @@ public class EpijuvStage extends AbstractLHS {
         List<LifeStageInterface> nLHSs = null;
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
-        if ((totalDepth>=minSettlementDepth)&&
-                (totalDepth<=maxSettlementDepth)/*&&
-                (depth>(totalDepth-5))*/) {
+        if ((bathym>=minSettlementDepth)&&
+                (bathym<=maxSettlementDepth)/*&&
+                (depth>(bathym-5))*/) {
                     devStage = 5;   
              if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
@@ -772,9 +770,9 @@ public class EpijuvStage extends AbstractLHS {
         }*/
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
-        if ((totalDepth>=minSettlementDepth)&&
-                (totalDepth<=maxSettlementDepth)/*&&*/
-                /*(depth>(totalDepth+5))*/) {
+        if ((bathym>=minSettlementDepth)&&
+                (bathym<=maxSettlementDepth)/*&&*/
+                /*(depth>(bathym+5))*/) {
             totRate += stageTransRate;
             //apply mortality rate to previous number transitioning and
             //add in new transitioners
@@ -787,7 +785,7 @@ public class EpijuvStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        totalDepth = i3d.interpolateBathymetricDepth(pos);
+        bathym     = i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
         lat        = i3d.interpolateLat(pos);
         lon        = i3d.interpolateLon(pos);
