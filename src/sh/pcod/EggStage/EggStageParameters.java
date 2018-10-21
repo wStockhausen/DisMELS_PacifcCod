@@ -50,11 +50,6 @@ public class EggStageParameters extends AbstractLHSParameters {
     public static final int numFunctionCats = 1;
     public static final String FCAT_Mortality = "mortality";
     
-    /** The 'keys' used to store the ibm functions */
-    protected static final Set<String> setOfFunctionCategories = new LinkedHashSet<>(2*numFunctionCats);
-    /** The 'keys' used to store the ibm parameters */
-    protected static final Set<String> setOfParamKeys = new LinkedHashSet<>(2*numParams);
-    
     private static final Logger logger = Logger.getLogger(EggStageParameters.class.getName());
     
     /** Utility field used by bound properties.  */
@@ -86,23 +81,23 @@ public class EggStageParameters extends AbstractLHSParameters {
     @Override
     protected final void createMapToParameters() {
         String key;
-        key = PARAM_isSuperIndividual;    setOfParamKeys.add(key); mapParams.put(key,new IBMParameterBoolean(key,key,false));
-        key = PARAM_horizRWP;             setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
-        key = PARAM_minStageDuration;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
-        key = PARAM_maxStageDuration;     setOfParamKeys.add(key); mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
-        key = PARAM_useRandomTransitions; setOfParamKeys.add(key); mapParams.put(key,new IBMParameterBoolean(key,key,false));
+        key = PARAM_isSuperIndividual;    mapParams.put(key,new IBMParameterBoolean(key,key,false));
+        key = PARAM_horizRWP;             mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
+        key = PARAM_minStageDuration;     mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
+        key = PARAM_maxStageDuration;     mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
+        key = PARAM_useRandomTransitions; mapParams.put(key,new IBMParameterBoolean(key,key,false));
     }
 
     @Override
     protected final void createMapToPotentialFunctions() {
-        //create the set of function category keys for this class
-       setOfFunctionCategories.add(FCAT_Mortality);
-        
         //create the map from function categories to potential functions in each category
-        String cat; Map<String,IBMFunctionInterface> mapOfPotentialFunctions; IBMFunctionInterface ifi;
+        String cat; 
+        Map<String,IBMFunctionInterface> mapOfPotentialFunctions; 
+        IBMFunctionInterface ifi;
         
         cat = FCAT_Mortality;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
@@ -117,10 +112,10 @@ public class EggStageParameters extends AbstractLHSParameters {
         EggStageParameters clone = null;
         try {
             clone = (EggStageParameters) super.clone();
-            for (String pKey: setOfParamKeys) {
+            for (String pKey: mapParams.keySet()) {
                 clone.setValue(pKey,this.getValue(pKey));
             }
-            for (String fcKey: setOfFunctionCategories) {
+            for (String fcKey: mapOfPotentialFunctionsByCategory.keySet()) {
                 Set<String> fKeys = this.getIBMFunctionKeysByCategory(fcKey);
                 IBMFunctionInterface sfi = this.getSelectedIBMFunctionForCategory(fcKey);
                 for (String fKey: fKeys){
@@ -164,7 +159,7 @@ public class EggStageParameters extends AbstractLHSParameters {
     @Override
     public String getCSV() {
         String str = typeName;
-        for (String key: setOfParamKeys) str = str+cc+getIBMParameter(key).getValueAsString();
+        for (String key: mapParams.keySet()) str = str+cc+getIBMParameter(key).getValueAsString();
         return str;
     }
                 
@@ -181,7 +176,7 @@ public class EggStageParameters extends AbstractLHSParameters {
     @Override
     public String getCSVHeader() {
         String str = "LHS type name";
-        for (String key: setOfParamKeys) str = str+cc+key;
+        for (String key: mapParams.keySet()) str = str+cc+key;
         return str;
     }
 
@@ -192,8 +187,8 @@ public class EggStageParameters extends AbstractLHSParameters {
      */
     @Override
     public String[] getKeys(){
-        String[] strv = new String[setOfParamKeys.size()];
-        return setOfParamKeys.toArray(strv);
+        String[] strv = new String[mapParams.keySet().size()];
+        return mapParams.keySet().toArray(strv);
     }
 
     /**
