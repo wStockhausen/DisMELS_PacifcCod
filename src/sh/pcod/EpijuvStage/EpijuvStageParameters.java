@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
@@ -53,9 +55,10 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_maxSettlementDepth     = "max settlement depth (m)";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 2;
+    public static final int numFunctionCats = 3;
     public static final String FCAT_Mortality        = "mortality";
     public static final String FCAT_VerticalMovement = "vertical movement";
+    public static final String FCAT_HSM              = "habitat suitability";
     
     private static final Logger logger = Logger.getLogger(EpijuvStageParameters.class.getName());
     
@@ -114,6 +117,12 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
         mapOfPotentialFunctions = new LinkedHashMap<>(4); 
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_HSM;  
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new HSMFunction_Constant(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new HSMFunction_NetCDF();   mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**
@@ -224,6 +233,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
      * Adds a PropertyChangeListener to the listener list.
      * @param l The listener to add.
      */
+    @Override
     public void addPropertyChangeListener(java.beans.PropertyChangeListener l) {
         propertySupport.addPropertyChangeListener(l);
     }
@@ -232,6 +242,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
      * Removes a PropertyChangeListener from the listener list.
      * @param l The listener to remove.
      */
+    @Override
     public void removePropertyChangeListener(java.beans.PropertyChangeListener l) {
         propertySupport.removePropertyChangeListener(l);
     }

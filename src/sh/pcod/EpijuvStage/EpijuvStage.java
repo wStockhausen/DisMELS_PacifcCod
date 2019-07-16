@@ -1,12 +1,15 @@
-/*
+/**
  * EpijuvStage.java
  *
- * Revised 10/11/2018:
- *   Corrected gL formula.
- *   Removed fcnDevelopment to match Parameters class.
- *   Removed fcnVV because calculation for w is hard-wired in calcUVW.
- *   Added "attached" as new attribute (necessary with updated DisMELS).
- *   Removed "diam" since it's replaced by "length"
+ * Revisions 10/11/2018:
+ *   20181011: 1. Corrected gL formula.
+ *             2. Removed fcnDevelopment to match Parameters class.
+ *             3. Removed fcnVV because calculation for w is hard-wired in calcUVW.
+ *             4. Added "attached" as new attribute (necessary with updated DisMELS).
+ *             5. Removed "diam" since it's replaced by "length"
+ *   20190716: 1. Removed former attributes devStage and density
+ *             2. Added attribute "hsi" and parameter IBMFunction fcnHSI
+ *             3. added copepod, neocalanus, and euphausiid as attributes
  *
  */
 
@@ -24,6 +27,8 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.FDLpfStage.FDLpfStageAttributes;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
 import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
@@ -54,11 +59,11 @@ public class EpijuvStage extends AbstractLHS {
     public static final String[] spawnedLHSClasses = new String[]{};
     
     /* string identifying environmental field with copepod densities */
-    private static final String Cop = "Cop";
+    private static final String FIELD_Cop = "Cop";
     /* string identifying environmental field with euphausiid densities */
-    private static final String Eup = "Eup";
+    private static final String FIELD_Eup = "Eup";
     /* string identifying environmental field with neocalanus densities */
-    private static final String NCa = "NCa";
+    private static final String FIELD_NCa = "NCa";
     
     //Instance fields
             //  Fields hiding ones from superclass
@@ -74,39 +79,37 @@ public class EpijuvStage extends AbstractLHS {
     protected double  minStageDuration;
     protected double  maxStageDuration;
     protected double  minStageSize;
-    protected double minSettlementDepth;
-    protected double maxSettlementDepth;
+    protected double  minSettlementDepth;
+    protected double  maxSettlementDepth;
     protected double  stageTransRate;
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
-    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
-    protected double devStage = 4;
-    /** density of egg [kg/m^3]--not used */
-    protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
     /** in situ salinity */
     protected double salinity = 0;
-     /** in situ copepod density mg/m^3, dry wt */
-     protected double copepod = 0; //not an attribute, so not output (remove??) 
-     /** in situ euphausiid density mg/m^3, dry wt */
+    /** in situ copepod density mg/m^3, dry wt */
+    protected double copepod = 0; //not an attribute, so not output (remove??) 
+    /** in situ euphausiid density mg/m^3, dry wt */
     protected double euphausiid = 0; //not an attribute, so not output (remove??) 
-     /** in situ neocalanoid density mg/m^3, dry wt */
+    /** in situ neocalanoid density mg/m^3, dry wt */
     protected double neocalanus = 0; //not an attribute, so not output (remove??) 
     /** in situ water density */
     protected double rho = 0;
-    /**growth in Length mm/d */
+    /** habitat suitability index value */
+    protected double hsi = 0;
+    
+    
     /**SH_NEW*/
+    /**growth in Length mm/d */
     protected double gL = 0;
         /**FDL Length variable (mm) */
     protected double length = 0;
     /**FDL maximum size = random between 25-35.  Stays the same at each time step*/
     protected double maxlength;
-    //in situ temperature
-    double T;
 
             //other fields
     /** number of individuals transitioning to next stage */
@@ -116,6 +119,8 @@ public class EpijuvStage extends AbstractLHS {
     private IBMFunctionInterface fcnMortality = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
+    /** IBM function selected for HSM */
+    private IBMFunctionInterface fcnHSI = null; 
     
     private static final Logger logger = Logger.getLogger(EpijuvStage.class.getName());
     
@@ -396,7 +401,8 @@ public class EpijuvStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(EpijuvStageParameters.FCAT_Mortality);
-            fcnVM = params.getSelectedIBMFunctionForCategory(EpijuvStageParameters.FCAT_VerticalMovement);
+            fcnVM  = params.getSelectedIBMFunctionForCategory(EpijuvStageParameters.FCAT_VerticalMovement);
+            fcnHSI = params.getSelectedIBMFunctionForCategory(EpijuvStageParameters.FCAT_HSM);
         } else {
             //TODO: throw some error
         }
@@ -460,7 +466,6 @@ public class EpijuvStage extends AbstractLHS {
         if ((bathym>=minSettlementDepth)&&
                 (bathym<=maxSettlementDepth)/*&&
                 (depth>(bathym-5))*/) {
-                    devStage = 5;   
              if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -594,16 +599,10 @@ public class EpijuvStage extends AbstractLHS {
         //WTS_NEW 2012-07-26:{
         double[] pos = lp.getIJK();
         //SH_NEW
-        T = i3d.interpolateTemperature(pos);
+        double T = i3d.interpolateTemperature(pos);
         if(T<=0.0) T=0.01; 
-        
-             //SH-Prey Stuff  
-        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-             
-        
-        double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
+                
+        double[] uvw = calcUVW(pos,dt,T);//this also sets "attached" and may change pos[2] to 0
         if (attached){
             lp.setIJK(pos[0], pos[1], pos[2]);
         } else {
@@ -635,6 +634,13 @@ public class EpijuvStage extends AbstractLHS {
         gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//corrected Hurst et al 2010, juvenile eq, mm per day
         length += (gL*dtday);
         
+        if (fcnHSI instanceof HSMFunction_Constant){
+            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
+        } else if (fcnHSI instanceof HSMFunction_NetCDF){
+            double[] posXY = new double[]{i3d.interpolateX(pos),i3d.interpolateY(pos)};
+            hsi = ((double[])fcnHSI.calculate(posXY))[0];
+        }
+        
         updateNum(dt);
         updateAge(dt);
         updatePosition(pos);
@@ -656,10 +662,13 @@ public class EpijuvStage extends AbstractLHS {
     /**
      * Function to calculate movement rates.
      * 
+     * @param pos - double[] indicating position in RIMS IJ coordinates
      * @param dt - time step
-     * @return 
+     * @param T - in situ temperature
+     * 
+     * @return double[] with u,v,w as elements
      */
-    public double[] calcUVW(double[] pos, double dt) {
+    public double[] calcUVW(double[] pos, double dt, double T) {
         //compute vertical velocity
         double w = 0;
         double TL;
@@ -798,7 +807,23 @@ public class EpijuvStage extends AbstractLHS {
         salinity    = i3d.interpolateSalinity(pos);
         if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
+        copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
+        euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
+        neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
     }
+
+/************************************************************************/
+/*	trian(tmin,tmode,tmax)	-SH code 8/2012		*/
+/************************************************************************/
+
+/*trian.c - Program returns a random deviate from a triangular       */
+/*  distribution.			  	  Oct. 25,1996  -SH  */
+
+/* tmin is the minimum value
+   tmode is the mode
+   tmax is the maximum value
+   tdev is the returned deviate
+*/
 
 /************************************************************************/
 /*	trian(tmin,tmode,tmax)	-SH code 8/2012		*/
@@ -920,12 +945,14 @@ private double trian(double tmin,double tmode,double tmax)
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(EpijuvStageAttributes.PROP_attached,attached);
-        atts.setValue(EpijuvStageAttributes.PROP_density,density);
-        atts.setValue(EpijuvStageAttributes.PROP_devStage,devStage);
         atts.setValue(EpijuvStageAttributes.PROP_length,length);
-        atts.setValue(EpijuvStageAttributes.PROP_rho,rho);
-        atts.setValue(EpijuvStageAttributes.PROP_salinity,salinity);
         atts.setValue(EpijuvStageAttributes.PROP_temperature,temperature);    
+        atts.setValue(EpijuvStageAttributes.PROP_salinity,salinity);
+        atts.setValue(EpijuvStageAttributes.PROP_rho,rho);
+        atts.setValue(EpijuvStageAttributes.PROP_copepod,copepod);
+        atts.setValue(EpijuvStageAttributes.PROP_neocalanus,neocalanus);
+        atts.setValue(EpijuvStageAttributes.PROP_euphausiid,euphausiid);
+        atts.setValue(EpijuvStageAttributes.PROP_hsi,hsi);
     }
 
     /**
@@ -934,13 +961,15 @@ private double trian(double tmin,double tmode,double tmax)
     @Override
     protected void updateVariables() {
         super.updateVariables();
-        attached    = atts.getValue(EpijuvStageAttributes.PROP_attached,attached);
-        density     = atts.getValue(EpijuvStageAttributes.PROP_density,density);
-        devStage    = atts.getValue(EpijuvStageAttributes.PROP_devStage,devStage);
-        length      = atts.getValue(EpijuvStageAttributes.PROP_length,length);
-        rho         = atts.getValue(EpijuvStageAttributes.PROP_rho,rho);
-        salinity    = atts.getValue(EpijuvStageAttributes.PROP_salinity,salinity);
+        attached    = atts.getValue(EpijuvStageAttributes.PROP_attached,   attached);
+        length      = atts.getValue(EpijuvStageAttributes.PROP_length,     length);
         temperature = atts.getValue(EpijuvStageAttributes.PROP_temperature,temperature);
+        salinity    = atts.getValue(EpijuvStageAttributes.PROP_salinity,   salinity);
+        rho         = atts.getValue(EpijuvStageAttributes.PROP_rho,        rho);
+        copepod     = atts.getValue(EpijuvStageAttributes.PROP_copepod,    copepod);
+        neocalanus  = atts.getValue(EpijuvStageAttributes.PROP_neocalanus, neocalanus);
+        euphausiid  = atts.getValue(EpijuvStageAttributes.PROP_euphausiid, euphausiid);
+        hsi         = atts.getValue(EpijuvStageAttributes.PROP_hsi,        hsi);
      }
 
 }

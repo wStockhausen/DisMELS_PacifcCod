@@ -9,7 +9,7 @@
  *   Removed "diam" since it's replaced by "length"
  * Revised 10/15/2018:
  *   Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
- *   Removed most of getMetamorphosedIndividuals() because there is o follow-on stage.
+ *   Removed most of getMetamorphosedIndividuals() because there is no follow-on stage.
  *
  */
 
@@ -54,11 +54,11 @@ public class BenthicJuvStage extends AbstractLHS {
     public static final String[] spawnedLHSClasses = new String[]{};
     
     /* string identifying environmental field with copepod densities */
-    private static final String Cop = "Cop";
+    private static final String FIELD_Cop = "Cop";
     /* string identifying environmental field with euphausiid densities */
-    private static final String Eup = "Eup";
+    private static final String FIELD_Eup = "Eup";
     /* string identifying environmental field with neocalanus densities */
-    private static final String NCa = "NCa";
+    private static final String FIELD_NCa = "NCa";
     
     //Instance fields
             //  Fields hiding ones from superclass
@@ -574,9 +574,9 @@ public class BenthicJuvStage extends AbstractLHS {
         //BenthicJuveniles do not move
         double[] pos = lp.getIJK();
         T = i3d.interpolateTemperature(pos);
-        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
+        copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
+        euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
+        neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
         
         time += dt;
         double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014

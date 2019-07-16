@@ -1,8 +1,5 @@
-/*
+/**
  * EpijuvStageAttributes.java
- *
- * Updated 10/11/2018:
- *   Added "attached" as attribute due to changes in DisMELS framework
  *
  */
 
