@@ -2,10 +2,10 @@
  * AbstractNonEggStageAttributes.java
  *
  * Updated:
- *   20181011: Added "attached" as attribute due to changes in DisMELS framework
- *   20190716: 1. Added "hsi" as attribute to incorporate habitat suitability index
- *             2. removed PROP_density and PROP_devStage attributes
- *
+ * 20181011: 1. Added "attached" as attribute due to changes in DisMELS framework
+ * 20190716: 1. Added "hsi" as attribute to incorporate habitat suitability index
+ *           2. removed PROP_density and PROP_devStage attributes
+ * 20190722: 1. Removed "hsi" attribute since most subclasses don't use it
  */
 
 package sh.pcod;
@@ -19,12 +19,11 @@ import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
 
 /**
  * DisMELS class representing attributes for non-egg stage Pacific cod classes.
- * @TODO: remove PROP_density and PROP_devStage(?) and associated variables.
  */
 public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttributes {
     
     /** Number of new attributes defined by this class */
-    public static final int numNewAttributes = 9;
+    public static final int numNewAttributes = 8;
     public static final String PROP_attached    = "attached";
     public static final String PROP_length      = "standard length";
     public static final String PROP_temperature = "temperature deg C";
@@ -33,14 +32,14 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     public static final String PROP_copepod     = "Small copepods mg/m^3 dry wt C";
     public static final String PROP_neocalanus  = "Neocalanoids mg/m^3 dry wt";
     public static final String PROP_euphausiid  = "Euphausiids mg/m^3 dry wt C";
-    public static final String PROP_hsi         = "habitat suitability index";
     
-    protected static final Set<String> newKeys = new LinkedHashSet<>((int)(2*numNewAttributes));
-    protected static final Set<String> allKeys = new LinkedHashSet<>((int)(2*(numAttributes+numNewAttributes)));
-    protected static final Map<String,IBMAttribute> mapAllAttributes = new HashMap<>((int)(2*(numAttributes+numNewAttributes)));
-    protected static final String[] aKeys      = new String[numAttributes+numNewAttributes-1];//does not include typeName
-    protected static final Class[]  classes    = new Class[numAttributes+numNewAttributes];
-    protected static final String[] shortNames = new String[numAttributes+numNewAttributes];
+    /** these fields HIDE static fields from superclass and should incorporate ALL information from superclases */
+    protected static final int numAttributes = AbstractLHSAttributes.numAttributes+numNewAttributes;
+    protected static final Set<String> keys = new LinkedHashSet<>(2*numAttributes);
+    protected static final Map<String,IBMAttribute> mapAttributes = new HashMap<>(2*numAttributes);
+    protected static final String[] aKeys      = new String[numAttributes-1];//does not include typeName
+    protected static final Class[]  classes    = new Class[numAttributes];
+    protected static final String[] shortNames = new String[numAttributes];
    
     private static final Logger logger = Logger.getLogger(AbstractNonEggStageAttributes.class.getName());
     
@@ -61,28 +60,34 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
         finishInstantiation();
     }
     
+    /**
+     * This method adds default values for the new attributes to the superclass field "mapValues".
+     * 
+     * When the first instance of this class is created, this method also fills in 
+     * the static fields "keys" and "mapAttributes" with keys and attributes from the 
+     * superclass and from this class.
+     */
     private void finishInstantiation(){
-        if (newKeys.isEmpty()){
+        if (keys.isEmpty()){
             //set static field information
-            mapAllAttributes.putAll(AbstractLHSAttributes.mapAttributes);//add from superclass
+            keys.addAll(AbstractLHSAttributes.keys);//add from superclass
+            mapAttributes.putAll(AbstractLHSAttributes.mapAttributes);//add from superclass
             String key;
-            key = PROP_attached;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeBoolean(key,"attached"));
-            key = PROP_length;     newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"length"));
-            key = PROP_temperature;newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"temp"));
-            key = PROP_salinity;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"sal"));
-            key = PROP_rho;        newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"rho"));
-            key = PROP_copepod;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"copepod"));
-            key = PROP_euphausiid; newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"euphausiid"));
-            key = PROP_neocalanus; newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"neocalanus"));
-            key = PROP_hsi;        newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"hsi"));
-            allKeys.addAll(AbstractLHSAttributes.keys);//add from superclass
-            allKeys.addAll(newKeys);//add from this class
-            Iterator<String> it = allKeys.iterator();
+            key = PROP_attached;   keys.add(key); mapAttributes.put(key,new IBMAttributeBoolean(key,"attached"));
+            key = PROP_length;     keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"length"));
+            key = PROP_temperature;keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"temp"));
+            key = PROP_salinity;   keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"sal"));
+            key = PROP_rho;        keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"rho"));
+            key = PROP_copepod;    keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"copepod"));
+            key = PROP_euphausiid; keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"euphausiid"));
+            key = PROP_neocalanus; keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"neocalanus"));
+            
+            Iterator<String> it = keys.iterator();
             int j = 0; it.next();//skip typeName
             while (it.hasNext()) aKeys[j++] = it.next();
         }
         //set instance information
-        Map<String,Object> tmpMapValues = new HashMap<>((int)(2*(numNewAttributes+numAttributes)));
+        Map<String,Object> tmpMapValues = new HashMap<>(2*numAttributes);
         tmpMapValues.putAll(mapValues);//copy from super
         tmpMapValues.put(PROP_attached,   false);
         tmpMapValues.put(PROP_length,     new Double(0));
@@ -92,7 +97,6 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
         tmpMapValues.put(PROP_copepod,    new Double(-1));
         tmpMapValues.put(PROP_euphausiid, new Double(-1));
         tmpMapValues.put(PROP_neocalanus, new Double(-1));
-        tmpMapValues.put(PROP_hsi,        new Double(-1));
         mapValues = tmpMapValues;//assign to super
     }
 
@@ -103,8 +107,11 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
      */
     @Override
     public ArrayList getArrayList() {
-        ArrayList a = super.getArrayList();
-        for (String key: newKeys) a.add(getValue(key));
+        ArrayList a = new ArrayList(keys.size());
+        a.add(typeName);
+        Iterator<String> it = keys.iterator();
+        it.next();//skip PROP_typeName
+        while (it.hasNext()) a.add(getValue(it.next()));
         return a;
     }
 
@@ -115,24 +122,28 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
      */
     @Override
     public Object[] getAttributes() {
-        Object[] atts = new Object[numNewAttributes+AbstractLHSAttributes.numAttributes-1];
+        Object[] atts = new Object[numAttributes-1];
         int j = 0;
-        Iterator<String> it = allKeys.iterator();
+        Iterator<String> it = keys.iterator();
         it.next();//skip PROP_typeName
         while (it.hasNext()) atts[j++] = getValue(it.next()); 
         return atts;
     }
     
-       /**
+   /**
      * Returns a CSV string representation of the attribute values.
      * 
      *@return - CSV string attribute values
      */
     @Override
     public String getCSV() {
-        String str = super.getCSV();
-        Iterator<String> it = newKeys.iterator();
-        while (it.hasNext()) str = str+cc+getValueAsString(it.next());
+        String str = typeName;
+        Iterator<String> it = keys.iterator();
+        it.next();//skip typeName
+        while (it.hasNext()) {
+            String key = it.next();
+            str = str+cc+getValueAsString(key);
+        }
         return str;
     }
                 
@@ -145,8 +156,8 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
      */
     @Override
     public String getCSVHeader() {
-        String str = super.getCSVHeader();
-        Iterator<String> it = newKeys.iterator();
+        Iterator<String> it = keys.iterator();
+        String str = it.next();//typeName
         while (it.hasNext()) str = str+cc+it.next();
         return str;
     }
@@ -159,11 +170,12 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
      */
     @Override
     public String getCSVHeaderShortNames() {
-        String str = super.getCSVHeaderShortNames();
-        Iterator<String> it = newKeys.iterator();
-        while (it.hasNext()) str = str+cc+mapAllAttributes.get(it.next()).shortName;
+        Iterator<String> it = keys.iterator();
+        String str = mapAttributes.get(it.next()).shortName;//this is "typeName"
+        while (it.hasNext())  str = str+cc+mapAttributes.get(it.next()).shortName;
         return str;
     }
+    
     /**
      * Returns Class types for all attributes (including typeName) as a Class[]
      * in the order the allKeys are defined.
@@ -174,8 +186,8 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     public Class[] getClasses() {
         if (classes[0]==null){
             int j = 0;
-            for (String key: allKeys){
-                classes[j++] = mapAllAttributes.get(key).getValueClass();
+            for (String key: keys){
+                classes[j++] = mapAttributes.get(key).getValueClass();
             }
         }
         return classes;
@@ -202,8 +214,8 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     public String[] getShortNames() {
         if (shortNames[0]==null){
             int j = 0;
-            for (String key: allKeys){
-                shortNames[j++] = mapAllAttributes.get(key).shortName;
+            for (String key: keys){
+                shortNames[j++] = mapAttributes.get(key).shortName;
             }
         }
         return shortNames;
@@ -215,16 +227,16 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
      */
     @Override
     public void setValues(final String[] strv) {
-        super.setValues(strv);//set the standard attribute values
-        //set the values of the new attributes
-        int j = AbstractLHSAttributes.numAttributes;
+        int j = 1;
         try {
-            for (String key: newKeys) setValueFromString(key,strv[j++]);
+            Iterator<String> it = keys.iterator();
+            it.next();//skip typeName
+            while (it.hasNext()) setValueFromString(it.next(),strv[j++]);
         } catch (java.lang.IndexOutOfBoundsException ex) {
             //@TODO: should throw an exception here that identifies the problem
-            String[] aKeys = new String[AbstractNonEggStageAttributes.allKeys.size()];
-            aKeys = AbstractNonEggStageAttributes.allKeys.toArray(aKeys);
-                String str = "Missing attribute value for "+aKeys[j-1]+".\n"+
+            String[] aKeys = new String[keys.size()];
+            aKeys = keys.toArray(aKeys);
+                String str = "Missing attribute value for "+aKeys[j]+".\n"+
                              "Prior values are ";
                 for (int i=0;i<(j);i++) str = str+strv[i]+" ";
                 javax.swing.JOptionPane.showMessageDialog(
@@ -234,8 +246,8 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
                         javax.swing.JOptionPane.ERROR_MESSAGE);
                 throw ex;
         } catch (java.lang.NumberFormatException ex) {
-            String[] aKeys = new String[AbstractNonEggStageAttributes.allKeys.size()];
-            aKeys = AbstractNonEggStageAttributes.allKeys.toArray(aKeys);
+            String[] aKeys = new String[keys.size()];
+            aKeys = keys.toArray(aKeys);
             String str = "Bad attribute value for "+aKeys[j-2]+".\n"+
                          "Value was '"+strv[j-1]+"'.\n"+
                          "Entry was '";
@@ -267,7 +279,7 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     @Override
     public String getValueAsString(String key){
         Object val = getValue(key);
-        IBMAttribute att = mapAllAttributes.get(key);
+        IBMAttribute att = mapAttributes.get(key);
         att.setValue(val);
         String str = att.getValueAsString();
         return str;
@@ -276,7 +288,7 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     @Override
     public void setValueFromString(String key, String value) throws NumberFormatException {
         if (!key.equals(PROP_typeName)){
-            IBMAttribute att = mapAllAttributes.get(key);
+            IBMAttribute att = mapAttributes.get(key);
             att.parseValue(value);
             setValue(key,att.getValue());
         }

@@ -1,20 +1,18 @@
 /*
  * EpijuvStageParameters.java
  *
- * Revised on 10/11/2018:
- *   Removed FCAT_Development and development functions category.
- *   Removed EggAscensionRate function as option for vertical movement.
- * Revised on 10/15/2018:
- *   Removed FCAT_VerticalVelocity and associated functions category;
- *     function for w is hard-wired in calcUVW.
- *
+ * Revisions:
+ * 20181011: 1. Removed FCAT_Development and development functions category.
+ *           2. Removed EggAscensionRate function as option for vertical movement.
+ * 20181015: 1. Removed FCAT_VerticalVelocity and associated functions category;
+ *                function for w is hard-wired in calcUVW.
+ * 20190722: 1. Added FCAT_HSM IBMFunction category to incorporate habitat suitabiltiy map-type IBMFunctions.
  */
 
 package sh.pcod.EpijuvStage;
 
 import java.beans.PropertyChangeSupport;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -32,8 +30,7 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMParameterDouble;
 import wts.models.DisMELS.framework.LifeStageParametersInterface;
 
 /**
- * DisMELS class representing parameters for Pacific cod eggs
- * for the GOA IERP Modeling project.
+ * DisMELS class representing parameters for Pacific cod epijuveniles.
  * 
  * This class uses the IBMParameters/IBMFunctions approach to specifying stage-specific parameters.
  * 
@@ -45,7 +42,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
     public static final long serialVersionUID = 1L;
     
     /** the number of IBMParameter objects defined in the class */
-    public static final int numParams = 5;
+    public static final int numParams = 7;
     public static final String PARAM_isSuperIndividual      = "is a super-individual?";
     public static final String PARAM_horizRWP               = "horizontal random walk parameter [m^2]/[s]";
     public static final String PARAM_minStageDuration       = "min stage duration [d]";

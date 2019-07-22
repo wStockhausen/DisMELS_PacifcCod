@@ -44,7 +44,7 @@ public class YSLStageAttributes extends AbstractNonEggStageAttributes {
     @Override
     public Object clone() {
         YSLStageAttributes clone = new YSLStageAttributes(typeName);
-        for (String key: allKeys) clone.setValue(key,this.getValue(key));
+        for (String key: keys) clone.setValue(key,this.getValue(key));
         return clone;
     }
 

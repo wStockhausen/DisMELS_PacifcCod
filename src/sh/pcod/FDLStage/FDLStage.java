@@ -1,12 +1,13 @@
-/*
+/**
  * FDLStage.java
  *
- * Revised 10/11/2018:
- *   Corrected gL formula.
- *   Removed fcnDevelopment to match Parameters class.
- *   Removed fcnVV because calculation for w is hard-wired in calcUVW.
- *   Added "attached" as new attribute (necessary with updated DisMELS).
- *   Removed "diam" since it's replaced by "length"
+ * Revisions:
+ * 20181011:  1. Corrected gL formula
+ *            2. Removed fcnDevelopment to match Parameters class.
+ *            3. Removed fcnVV because calculation for w is hard-wired in calcUVW.
+ *            4. Added "attached" as new attribute (necessary with updated DisMELS).
+ *            5. Removed "diam" since it's replaced by "length"
+ * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
  *
  */
 
@@ -80,17 +81,13 @@ public class FDLStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
-    /** development stage,0=egg,1=ysl,2=fdl,3=fdlpf, 4=epijuv,5=juv */
-    protected double devStage = 2;
-    /** density of egg [kg/m^3]--not used */
-    protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-     /** in situ copepod density mg/m^3, dry wt */
+     /** in situ copepod density (mg/m^3, dry wt) */
      protected double copepod;    /** in situ small copepods */
-     /** in situ euphausiid density mg/m^3, dry wt */
+     /** in situ euphausiid density (mg/m^3, dry wt) */
     protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density mg/m^3, dry wt */
+     /** in situ neocalanoid density (mg/m^3, dry wt) */
     protected double neocalanus = 0;    /** in situ large copepods */      
      
     
@@ -104,11 +101,11 @@ public class FDLStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    /**growth in Length mm/d */
+    /** growth in Length mm/d */
     protected double gL = 0;
-    //FDL Size at flexion
+    /** FDL Size at flexion */
     protected double flexion=13.5;
-    //in situ temperature
+    /** in situ temperature */
     double T;
     
     /** IBM function selected for mortality */
@@ -119,7 +116,7 @@ public class FDLStage extends AbstractLHS {
     private static final Logger logger = Logger.getLogger(FDLStage.class.getName());
     
     /**
-     * Creates a new instance of GenericLHS.  
+     * Creates a new instance of FDLStage.  
      *  This constructor should be used ONLY to obtain
      *  the class names of the associated classes.
      * DO NOT DELETE THIS CONSTRUCTOR!!
@@ -131,7 +128,7 @@ public class FDLStage extends AbstractLHS {
     }
     
     /**
-     * Creates a new instance of SimplePelagicLHS with the given typeName.
+     * Creates a new instance of FDLStage with the given typeName.
      * A new id number is calculated in the superclass and assigned to
      * the new instance's id, parentID, and origID. 
      * 
@@ -284,14 +281,7 @@ public class FDLStage extends AbstractLHS {
            //SH_NEW
             // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
             atts.setValue(FDLStageAttributes.PROP_length,oldAtts.getValue(YSLStageAttributes.PROP_length, length));
-            
-
-
-        
         } else {
-            
-            
-            
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
@@ -453,7 +443,6 @@ public class FDLStage extends AbstractLHS {
         List<LifeStageInterface> nLHSs;
         
         if(length >= flexion) {
-           devStage = 3;
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -807,9 +796,7 @@ public class FDLStage extends AbstractLHS {
    tdev is the returned deviate
 */
 
-private double trian(double tmin,double tmode,double tmax) 
-
-{
+private double trian(double tmin,double tmode,double tmax) {
   int i;
   double tdev=0.0,u,x=0.0;
 
@@ -829,7 +816,6 @@ private double trian(double tmin,double tmode,double tmax)
     if(x>0.5)   tdev = 2.0*tmode-tmax+2.0*(tmax-tmode)*x;
 
     return tdev;
-
 }
 
 /************************************************************************/
@@ -914,8 +900,6 @@ private double trian(double tmin,double tmode,double tmax)
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(FDLStageAttributes.PROP_attached,attached);
-        atts.setValue(FDLStageAttributes.PROP_density,density);
-        atts.setValue(FDLStageAttributes.PROP_devStage,devStage);
         atts.setValue(FDLStageAttributes.PROP_length,length);
         atts.setValue(FDLStageAttributes.PROP_rho,rho);
         atts.setValue(FDLStageAttributes.PROP_salinity,salinity);
@@ -932,8 +916,6 @@ private double trian(double tmin,double tmode,double tmax)
     protected void updateVariables() {
         super.updateVariables();
         attached     = atts.getValue(FDLStageAttributes.PROP_attached,attached);
-        density     = atts.getValue(FDLStageAttributes.PROP_density,density);
-        devStage    = atts.getValue(FDLStageAttributes.PROP_devStage,devStage);
         length      = atts.getValue(FDLStageAttributes.PROP_length,length);
         rho         = atts.getValue(FDLStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(FDLStageAttributes.PROP_salinity,salinity);

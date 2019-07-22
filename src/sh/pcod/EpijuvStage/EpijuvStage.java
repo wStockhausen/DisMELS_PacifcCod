@@ -103,7 +103,7 @@ public class EpijuvStage extends AbstractLHS {
     protected double hsi = 0;
     
     
-    /**SH_NEW*/
+    // SH_NEW
     /**growth in Length mm/d */
     protected double gL = 0;
         /**FDL Length variable (mm) */
@@ -290,12 +290,7 @@ public class EpijuvStage extends AbstractLHS {
            //SH_NEW
             // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
             atts.setValue(EpijuvStageAttributes.PROP_length,oldAtts.getValue(FDLpfStageAttributes.PROP_length, length));
-
-        
         } else {
-            
-            
-            
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
@@ -464,8 +459,8 @@ public class EpijuvStage extends AbstractLHS {
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
         if ((bathym>=minSettlementDepth)&&
-                (bathym<=maxSettlementDepth)/*&&
-                (depth>(bathym-5))*/) {
+                (bathym<=maxSettlementDepth)&&
+                (depth>(bathym-5))) {
              if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -780,8 +775,8 @@ public class EpijuvStage extends AbstractLHS {
         //if total depth is appropriate for settlement and 
         //indiv is near the bottom, then settle and transform to next stage.
         if ((bathym>=minSettlementDepth)&&
-                (bathym<=maxSettlementDepth)/*&&*/
-                /*(depth>(bathym+5))*/) {
+                (bathym<=maxSettlementDepth)&&
+                (depth>(bathym+5))) {
             totRate += stageTransRate;
             //apply mortality rate to previous number transitioning and
             //add in new transitioners
@@ -838,9 +833,7 @@ public class EpijuvStage extends AbstractLHS {
    tdev is the returned deviate
 */
 
-private double trian(double tmin,double tmode,double tmax) 
-
-{
+private double trian(double tmin,double tmode,double tmax){
   int i;
   double tdev=0.0,u,x=0.0;
 
@@ -860,7 +853,6 @@ private double trian(double tmin,double tmode,double tmax)
     if(x>0.5)   tdev = 2.0*tmode-tmax+2.0*(tmax-tmode)*x;
 
     return tdev;
-
 }
 
 /************************************************************************/

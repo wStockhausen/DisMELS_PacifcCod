@@ -1,11 +1,11 @@
 /*
  * BenthicJuvStageParameters.java
  *
- * Revised 10/15/2018:
- *   Removed all Parameter function categories except "mortality" because they
- *     were not being used (development is hard-wired, benthic juveniles don't move).
- * Revised 10/15/2018:
- *   Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
+ * Revisions:
+ * 20181011: 1. Removed all Parameter function categories except "mortality" because they
+ *                were not being used (development is hard-wired, benthic juveniles don't move).
+ * 20181015: 1. Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
+ * 20190722: 1. Added FCAT_HSM IBMFunction category to incorporate habitat suitabiltiy map-type IBMFunctions.
  *
  */
 
@@ -13,23 +13,22 @@ package sh.pcod.BenthicJuvStage;
 
 import java.beans.PropertyChangeSupport;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.models.DisMELS.framework.IBMFunctions.IBMParameter;
 import wts.models.DisMELS.framework.IBMFunctions.IBMParameterBoolean;
 import wts.models.DisMELS.framework.IBMFunctions.IBMParameterDouble;
 import wts.models.DisMELS.framework.LifeStageParametersInterface;
 
 /**
- * DisMELS class representing parameters for Pacific cod eggs
- * for the GOA IERP Modeling project.
+ * DisMELS class representing parameters for Pacific cod benthic juveniles.
  * 
  * This class uses the IBMParameters/IBMFunctions approach to specifying stage-specific parameters.
  * 
@@ -49,8 +48,9 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 1;
+    public static final int numFunctionCats = 2;
     public static final String FCAT_Mortality = "mortality";
+    public static final String FCAT_HSM       = "habitat suitability";
     
     private static final Logger logger = Logger.getLogger(BenthicJuvStageParameters.class.getName());
     
@@ -99,6 +99,12 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_HSM;  
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new HSMFunction_Constant(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new HSMFunction_NetCDF();   mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**

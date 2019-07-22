@@ -44,7 +44,7 @@ public class FDLpfStageAttributes extends AbstractNonEggStageAttributes {
     @Override
     public Object clone() {
         FDLpfStageAttributes clone = new FDLpfStageAttributes(typeName);
-        for (String key: allKeys) clone.setValue(key,this.getValue(key));
+        for (String key: keys) clone.setValue(key,this.getValue(key));
         return clone;
     }
 

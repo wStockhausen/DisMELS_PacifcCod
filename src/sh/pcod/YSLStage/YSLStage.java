@@ -1,11 +1,12 @@
-/*
+/**
  * YSLStage.java
  *
- * Revised 10/11/2018:
- *   Corrected gL formula.
- *   Removed fcnDevelopment to match Parameters class.
- *   Added "attached" as new attribute (necessary with updated DisMELS).
- *   Removed "diam" since it's replaced by "length"
+ * Updates:
+ * 20181011  1. Corrected gL formula.
+ *           2. Removed fcnDevelopment to match Parameters class.
+ *           3. Added "attached" as new attribute (necessary with updated DisMELS).
+ *           4. Removed "diam" since it's replaced by "length"
+ * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
  *
  */
 
@@ -29,6 +30,7 @@ import wts.roms.model.LagrangianParticle;
 /**
  *
  * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageInterface.class)
 public class YSLStage extends AbstractLHS {
@@ -81,10 +83,6 @@ public class YSLStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
-    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
-    protected double devStage;
-    /** density of egg [kg/m^3]--not used */
-    protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
    /** in situ copepod density mg/m^3, dry wt)) */
@@ -125,7 +123,7 @@ public class YSLStage extends AbstractLHS {
     private static final Logger logger = Logger.getLogger(YSLStage.class.getName());
     
     /**
-     * Creates a new instance of GenericLHS.  
+     * Creates a new instance of YSLStage.  
      *  This constructor should be used ONLY to obtain
      *  the class names of the associated classes.
      * DO NOT DELETE THIS CONSTRUCTOR!!
@@ -137,7 +135,7 @@ public class YSLStage extends AbstractLHS {
     }
     
     /**
-     * Creates a new instance of SimplePelagicLHS with the given typeName.
+     * Creates a new instance of YSLStage with the given typeName.
      * A new id number is calculated in the superclass and assigned to
      * the new instance's id, parentID, and origID. 
      * 
@@ -460,7 +458,6 @@ public class YSLStage extends AbstractLHS {
         List<LifeStageInterface> nLHSs;
         //SH_NEW:
         if (fedyet==true){
-           devStage = 2; 
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -659,8 +656,6 @@ public class YSLStage extends AbstractLHS {
              //TEMP
              gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
              length = length + (gL*dtday);
-              
-             devStage = 1;
            }
      // Case 2.  After ysa, ready to feed
           else if((ysaratio>=1.0)&&(ageInStage<PNR)){
@@ -674,8 +669,7 @@ public class YSLStage extends AbstractLHS {
                 //growth:
                gL = (0.179 + (0.015 * T) - (0.00001 * T * T));//Hurst et al 2010, preflexion eq, mm per day
                length = length + (gL*dtday);
-               devStage=1;
-              }
+            }
             else if(b<=prfeed) {               // Case 3. b <= prfeed, FEEDING OCCURS
                //mortality
                //growth:
@@ -916,8 +910,6 @@ public class YSLStage extends AbstractLHS {
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(YSLStageAttributes.PROP_attached,attached);
-        atts.setValue(YSLStageAttributes.PROP_density,density);
-        atts.setValue(YSLStageAttributes.PROP_devStage,devStage);
         atts.setValue(YSLStageAttributes.PROP_length,length);
         atts.setValue(YSLStageAttributes.PROP_rho,rho);
         atts.setValue(YSLStageAttributes.PROP_salinity,salinity);
@@ -935,8 +927,6 @@ public class YSLStage extends AbstractLHS {
     protected void updateVariables() {
         super.updateVariables();
         attached    = atts.getValue(YSLStageAttributes.PROP_attached,attached);
-        density     = atts.getValue(YSLStageAttributes.PROP_density,density);
-        devStage    = atts.getValue(YSLStageAttributes.PROP_devStage,devStage);
         length      = atts.getValue(YSLStageAttributes.PROP_length,length); 
         rho         = atts.getValue(YSLStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(YSLStageAttributes.PROP_salinity,salinity);

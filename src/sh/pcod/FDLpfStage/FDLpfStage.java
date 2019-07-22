@@ -1,11 +1,12 @@
-/*
+/**
  * FDLpfStage.java
  *
- * Revised 10/11/2018:
- *   Removed fcnDevelopment to match Parameters class.
- *   Removed fcnVV because calculation for w is hard-wired in calcUVW.
- *   Added "attached" as new attribute (necessary with updated DisMELS).
- *   Removed "diam" since it's replaced by "length"
+ * Revisions:
+ * 20181011:  1. Removed fcnDevelopment to match Parameters class.
+ *            2. Removed fcnVV because calculation for w is hard-wired in calcUVW.
+ *            3. Added "attached" as new attribute (necessary with updated DisMELS).
+ *            4. Removed "diam" since it's replaced by "length"
+ * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
  *
  */
 
@@ -29,6 +30,7 @@ import wts.roms.model.Interpolator3D;
 /**
  *
  * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageInterface.class)
 public class FDLpfStage extends AbstractLHS {
@@ -80,22 +82,19 @@ public class FDLpfStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
-    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
-    protected double devStage;
-    /** density of egg [kg/m^3]--not used */
-    protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
     /** in situ salinity */
     protected double salinity = 0;
-     protected double copepod = 0;    /** in situ small copepods */
-     /** in situ euphausiid density mg/m^3, dry wt)) */
-    protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density mg/m^3, dry wt)) */
-    protected double neocalanus = 0;    /** in situ large copepods */      
+    /** in situ small copepods  density (mg/m^3, dry wt)*/
+    protected double copepod = 0;    
+     /** in situ euphausiid density (mg/m^3, dry wt)) */
+    protected double euphausiid = 0;
+     /** in situ neocalanoid density (mg/m^3, dry wt)) */
+    protected double neocalanus = 0; 
     /** in situ water density */
     protected double rho = 0;
-    /**length (mm) */
+    /** length (mm) */
     protected double length = 0;
 
             //other fields
@@ -116,7 +115,7 @@ public class FDLpfStage extends AbstractLHS {
     private static final Logger logger = Logger.getLogger(FDLpfStage.class.getName());
     
     /**
-     * Creates a new instance of GenericLHS.  
+     * Creates a new instance of FDLpfStage.  
      *  This constructor should be used ONLY to obtain
      *  the class names of the associated classes.
      * DO NOT DELETE THIS CONSTRUCTOR!!
@@ -128,7 +127,7 @@ public class FDLpfStage extends AbstractLHS {
     }
     
     /**
-     * Creates a new instance of SimplePelagicLHS with the given typeName.
+     * Creates a new instance of FDLpfStage with the given typeName.
      * A new id number is calculated in the superclass and assigned to
      * the new instance's id, parentID, and origID. 
      * 
@@ -281,12 +280,7 @@ public class FDLpfStage extends AbstractLHS {
            //SH_NEW
             // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
             atts.setValue(FDLpfStageAttributes.PROP_length,oldAtts.getValue(FDLStageAttributes.PROP_length, length));
-
-        
         } else {
-            
-            
-            
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
@@ -448,7 +442,6 @@ public class FDLpfStage extends AbstractLHS {
         List<LifeStageInterface> nLHSs;
         
         if(length >= maxlength) {
-           devStage = 4;   
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -585,7 +578,7 @@ public class FDLpfStage extends AbstractLHS {
         if(T<=0.0) T=0.01; 
        
              //SH-Prey Stuff  
-        copepod = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
+        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
         euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
         neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
              
@@ -792,9 +785,7 @@ public class FDLpfStage extends AbstractLHS {
    tdev is the returned deviate
 */
 
-private double trian(double tmin,double tmode,double tmax) 
-
-{
+private double trian(double tmin,double tmode,double tmax) {
   int i;
   double tdev=0.0,u,x=0.0;
 
@@ -814,7 +805,6 @@ private double trian(double tmin,double tmode,double tmax)
     if(x>0.5)   tdev = 2.0*tmode-tmax+2.0*(tmax-tmode)*x;
 
     return tdev;
-
 }
 
 /************************************************************************/
@@ -899,8 +889,6 @@ private double trian(double tmin,double tmode,double tmax)
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(FDLpfStageAttributes.PROP_attached,attached);
-        atts.setValue(FDLpfStageAttributes.PROP_density,density);
-        atts.setValue(FDLpfStageAttributes.PROP_devStage,devStage);
         atts.setValue(FDLpfStageAttributes.PROP_length,length);
         atts.setValue(FDLpfStageAttributes.PROP_rho,rho);
         atts.setValue(FDLpfStageAttributes.PROP_salinity,salinity);
@@ -914,8 +902,6 @@ private double trian(double tmin,double tmode,double tmax)
     protected void updateVariables() {
         super.updateVariables();
         attached    = atts.getValue(FDLpfStageAttributes.PROP_attached,attached);
-        density     = atts.getValue(FDLpfStageAttributes.PROP_density,density);
-        devStage    = atts.getValue(FDLpfStageAttributes.PROP_devStage,devStage);
         length      = atts.getValue(FDLpfStageAttributes.PROP_length,length);
         rho         = atts.getValue(FDLpfStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(FDLpfStageAttributes.PROP_salinity,salinity);
