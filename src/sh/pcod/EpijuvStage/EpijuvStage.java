@@ -235,14 +235,15 @@ public class EpijuvStage extends AbstractLHS {
      * String[]. This does NOT change the typeNameof the LHS instance (or the 
      * associated LHSAttributes instance) on which the method is called.
      * Attribute values are set using SimpleBenthicLHSAttributes.setValues(String[]).
+     * <pre>
      * Side effects:
      *  1. If th new id attribute is not "-1", then its value for id replaces the 
      *      current value for the lhs.
      *  2. If the new parentID attribute is "-1", then it is set to the value for id.
      *  3. If the new origID attribute is "-1", then it is set to the value for id.
      *  4. initialize() is called to initialize variables and convert position
-     *   attributes.
-     * /
+     *      attributes.
+     * </pre>
      * @param strv - attribute values as String[]
      */
     @Override

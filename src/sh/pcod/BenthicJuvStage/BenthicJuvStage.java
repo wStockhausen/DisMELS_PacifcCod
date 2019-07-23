@@ -269,9 +269,11 @@ public class BenthicJuvStage extends AbstractLHS {
      * LHSAttributes instance) on which the method is called.
      * Note that ALL attributes are copied, so id, parentID, and origID are copied
      * as well. 
+     * <pre>
      *  Side effects:
-     *      updateVariables() is called to update instance variables.
-     *      Instance field "id" is also updated.
+     *      1. updateVariables() is called to update instance variables.
+     *      2. Instance field "id" is also updated.
+     * </pre>
      * @param newAtts - should be instance of SimplePelagicLHSAttributes
      */
     @Override
