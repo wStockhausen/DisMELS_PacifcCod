@@ -7,6 +7,7 @@
  * 20181015: 1. Removed FCAT_VerticalVelocity and associated functions category;
  *                function for w is hard-wired in calcUVW.
  * 20190722: 1. Added FCAT_HSM IBMFunction category to incorporate habitat suitabiltiy map-type IBMFunctions.
+ * 20190723: 1. Added PARAM_minSettlementHSI IBMParameter to define minimum HSI for settlement.
  */
 
 package sh.pcod.EpijuvStage;
@@ -42,7 +43,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
     public static final long serialVersionUID = 1L;
     
     /** the number of IBMParameter objects defined in the class */
-    public static final int numParams = 7;
+    public static final int numParams = 8;
     public static final String PARAM_isSuperIndividual      = "is a super-individual?";
     public static final String PARAM_horizRWP               = "horizontal random walk parameter [m^2]/[s]";
     public static final String PARAM_minStageDuration       = "min stage duration [d]";
@@ -50,6 +51,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     public static final String PARAM_minSettlementDepth     = "min settlement depth (m)";
     public static final String PARAM_maxSettlementDepth     = "max settlement depth (m)";
+    public static final String PARAM_minSettlementHSI       = "min settlement HSI (0-1)";
     
     /** the number of IBMFunction categories defined in the class */
     public static final int numFunctionCats = 3;
@@ -94,6 +96,7 @@ public class EpijuvStageParameters extends AbstractLHSParameters {
         key = PARAM_maxStageDuration;     mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
         key = PARAM_minSettlementDepth;   mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
         key = PARAM_maxSettlementDepth;   mapParams.put(key,new IBMParameterDouble(key,key,new Double(365)));
+        key = PARAM_minSettlementHSI;     mapParams.put(key,new IBMParameterDouble(key,key,new Double(0)));
         key = PARAM_useRandomTransitions; mapParams.put(key,new IBMParameterBoolean(key,key,false));
     }
 

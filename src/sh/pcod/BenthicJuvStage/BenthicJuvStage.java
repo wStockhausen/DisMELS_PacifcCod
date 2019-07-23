@@ -516,7 +516,6 @@ public class BenthicJuvStage extends AbstractLHS {
      * and finally calls updatePosition(), updateEnvVars(), and updateAttributes().
      */
     public void initialize() {
-//        atts.setValue(SimplePelagicLHSAttributes.PARAM_id,id);//TODO: should do this beforehand!!
         updateVariables();//set instance variables to attribute values
         int hType,vType;
         hType=vType=-1;
@@ -570,7 +569,7 @@ public class BenthicJuvStage extends AbstractLHS {
             //interpolate initial position and environmental variables
             double[] pos = lp.getIJK();
             //SH_NEW  9_14
-            //updatePosition(pos);
+            updatePosition(pos);
             interpolateEnvVars(pos);
             updateAttributes(); 
         }
@@ -589,21 +588,19 @@ public class BenthicJuvStage extends AbstractLHS {
         gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//Hurst et al 2010, juvenile eq, mm per day
         length += (gL*dtday);
         
-        //Need Mortality
-        
-        if (fcnHSI instanceof HSMFunction_Constant){
-            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
-        } else if (fcnHSI instanceof HSMFunction_NetCDF){
-            double[] posXY = new double[]{i3d.interpolateX(pos),i3d.interpolateY(pos)};
-            hsi = ((double[])fcnHSI.calculate(posXY))[0];
-        }
-        
-        updateNum(dt);
-        updateAge(dt);
         updatePosition(pos);
         interpolateEnvVars(pos);
-        //no need to check for exiting grid
-        if (debug) logger.info(toString());
+        updateNum(dt);
+        updateAge(dt);
+        
+        //check for exiting grid (no real need for this until BenthicJuvs move)
+        if (i3d.isAtGridEdge(pos,tolGridEdge)){
+            alive=false;
+            active=false;
+        }
+        if (debug) {
+            logger.info(toString());
+        }
         updateAttributes(); //update the attributes object w/ nmodified values
     }
 
@@ -644,6 +641,19 @@ public class BenthicJuvStage extends AbstractLHS {
         number = number*Math.exp(-dt*totRate/86400);
     }
     
+    /**
+     * Updates location-associated information given the current location.
+     * <pre>
+     * Updates the following position-related variables:
+     *   1. bathymetry (bathym)
+     *   2. depth
+     *   3. latitude (lat)
+     *   4. longitude (lon)
+     *   5. gridCellID
+     *   6. the track
+     * </pre>
+     * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
+     */
     private void updatePosition(double[] pos) {
         bathym     = i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
@@ -653,14 +663,37 @@ public class BenthicJuvStage extends AbstractLHS {
         updateTrack();
     }
     
+    /**
+     * Interpolates the environmental variables to the current location.
+     * <pre>
+     * Updates the following environmental variables:
+     *   1. temperature
+     *   2. salinity
+     *   3. seawater density (rho, if included in the physical environment)
+     *   4. copepod density (if included in the physical environment)
+     *   5. euphausiid density (if included in the physical environment)
+     *   6. neocalanus density (if included in the physical environment)
+     *   7. hsi
+     * </pre>
+     * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
+     */
     private void interpolateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
         if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
-        copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
+        if (i3d.getPhysicalEnvironment().getField(FIELD_Cop)!=null) 
+            copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
+        if (i3d.getPhysicalEnvironment().getField(FIELD_Eup)!=null) 
+            euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
+        if (i3d.getPhysicalEnvironment().getField(FIELD_NCa)!=null) 
+            neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
+        if (fcnHSI instanceof HSMFunction_Constant){
+            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
+        } else if (fcnHSI instanceof HSMFunction_NetCDF){
+            double[] posLL = new double[]{lon,lat};
+            hsi = (Double)fcnHSI.calculate(posLL);
+        }
     }
 
     @Override

@@ -81,6 +81,7 @@ public class EpijuvStage extends AbstractLHS {
     protected double  minStageSize;
     protected double  minSettlementDepth;
     protected double  maxSettlementDepth;
+    protected double  minSettlementHSI;
     protected double  stageTransRate;
     protected boolean useRandomTransitions;
     
@@ -420,6 +421,8 @@ public class EpijuvStage extends AbstractLHS {
                 params.getValue(EpijuvStageParameters.PARAM_minSettlementDepth,minSettlementDepth);
         maxSettlementDepth = 
                 params.getValue(EpijuvStageParameters.PARAM_maxSettlementDepth,maxSettlementDepth);
+        minSettlementHSI = 
+                params.getValue(EpijuvStageParameters.PARAM_minSettlementHSI,minSettlementHSI);
         
         
         useRandomTransitions = 
@@ -461,7 +464,8 @@ public class EpijuvStage extends AbstractLHS {
         //indiv is near the bottom, then settle and transform to next stage.
         if ((bathym>=minSettlementDepth)&&
                 (bathym<=maxSettlementDepth)&&
-                (depth>(bathym-5))) {
+                (depth>(bathym-5))&&
+                (minSettlementHSI<hsi)) {
              if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -630,17 +634,11 @@ public class EpijuvStage extends AbstractLHS {
         gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//corrected Hurst et al 2010, juvenile eq, mm per day
         length += (gL*dtday);
         
-        if (fcnHSI instanceof HSMFunction_Constant){
-            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
-        } else if (fcnHSI instanceof HSMFunction_NetCDF){
-            double[] posXY = new double[]{i3d.interpolateX(pos),i3d.interpolateY(pos)};
-            hsi = ((double[])fcnHSI.calculate(posXY))[0];
-        }
-        
-        updateNum(dt);
-        updateAge(dt);
         updatePosition(pos);
         interpolateEnvVars(pos);
+        updateNum(dt);
+        updateAge(dt);
+        
         //check for exiting grid
         if (i3d.isAtGridEdge(pos,tolGridEdge)){
             alive=false;
@@ -658,7 +656,7 @@ public class EpijuvStage extends AbstractLHS {
     /**
      * Function to calculate movement rates.
      * 
-     * @param pos - double[] indicating position in RIMS IJ coordinates
+     * @param pos - double[] indicating position in ROMS IJ coordinates
      * @param dt - time step
      * @param T - in situ temperature
      * 
@@ -737,8 +735,7 @@ public class EpijuvStage extends AbstractLHS {
         //return the result
         return new double[]{Math.signum(dt)*uv[0],Math.signum(dt)*uv[1],Math.signum(dt)*w};
     }
-    //WTS_NEW 2012-07-26:{
-
+ 
     /**
      *
      * @param dt - time step in seconds
@@ -753,7 +750,64 @@ public class EpijuvStage extends AbstractLHS {
     }
 
     /**
-     *
+     * Updates location-associated information given the current location.
+     * <pre>
+     * Updates the following position-related variables:
+     *   1. bathymetry (bathym)
+     *   2. depth
+     *   3. latitude (lat)
+     *   4. longitude (lon)
+     *   5. gridCellID
+     *   6. the track
+     * </pre>
+     * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
+     */
+    private void updatePosition(double[] pos) {
+        bathym     = i3d.interpolateBathymetricDepth(pos);
+        depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
+        lat        = i3d.interpolateLat(pos);
+        lon        = i3d.interpolateLon(pos);
+        gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
+        updateTrack();
+    }
+    
+    /**
+     * Interpolates the environmental variables to the current location.
+     * <pre>
+     * Updates the following environmental variables:
+     *   1. temperature
+     *   2. salinity
+     *   3. seawater density (rho, if included in the physical environment)
+     *   4. copepod density (if included in the physical environment)
+     *   5. euphausiid density (if included in the physical environment)
+     *   6. neocalanus density (if included in the physical environment)
+     *   7. hsi
+     * </pre>
+     * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
+     */
+    private void interpolateEnvVars(double[] pos) {
+        temperature = i3d.interpolateTemperature(pos);
+        salinity    = i3d.interpolateSalinity(pos);
+        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
+        else rho = 0.0;
+        if (i3d.getPhysicalEnvironment().getField(FIELD_Cop)!=null) 
+            copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
+        if (i3d.getPhysicalEnvironment().getField(FIELD_Eup)!=null) 
+            euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
+        if (i3d.getPhysicalEnvironment().getField(FIELD_NCa)!=null) 
+            neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
+        if (fcnHSI instanceof HSMFunction_Constant){
+            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
+        } else if (fcnHSI instanceof HSMFunction_NetCDF){
+            double[] posLL = new double[]{lon,lat};
+            hsi = (Double)fcnHSI.calculate(posLL);
+        }
+    }
+
+    /**
+     * Update abundance associated with instance and number transitioning to
+     * next life stage.
+     * 
      * @param dt - time step in seconds
      */
     private void updateNum(double dt) {
@@ -777,37 +831,18 @@ public class EpijuvStage extends AbstractLHS {
         //indiv is near the bottom, then settle and transform to next stage.
         if ((bathym>=minSettlementDepth)&&
                 (bathym<=maxSettlementDepth)&&
-                (depth>(bathym+5))) {
+                (depth>(bathym+5))&&
+                (minSettlementHSI<=hsi)) {
             totRate += stageTransRate;
             //apply mortality rate to previous number transitioning and
             //add in new transitioners
             numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
                     (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
        
+        }
         number = number*Math.exp(-dt*totRate/86400);
-        //}: WTS_NEW 2012-07-26
-    }
     }
     
-    private void updatePosition(double[] pos) {
-        bathym     = i3d.interpolateBathymetricDepth(pos);
-        depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-        lat        = i3d.interpolateLat(pos);
-        lon        = i3d.interpolateLon(pos);
-        gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
-        updateTrack();
-    }
-    
-    private void interpolateEnvVars(double[] pos) {
-        temperature = i3d.interpolateTemperature(pos);
-        salinity    = i3d.interpolateSalinity(pos);
-        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
-        else rho = 0.0;
-        copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
-    }
-
 /************************************************************************/
 /*	trian(tmin,tmode,tmax)	-SH code 8/2012		*/
 /************************************************************************/
