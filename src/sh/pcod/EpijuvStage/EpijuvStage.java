@@ -10,7 +10,7 @@
  *   20190716: 1. Removed former attributes devStage and density
  *             2. Added attribute "hsi" and parameter IBMFunction fcnHSI
  *             3. added copepod, neocalanus, and euphausiid as attributes
- *
+ *   20190725: 1. Added HSMFunction_NetCdF_InMemory as potential IBMFunction
  */
 
 package sh.pcod.EpijuvStage;
@@ -29,6 +29,7 @@ import wts.roms.model.LagrangianParticle;
 import sh.pcod.FDLpfStage.FDLpfStageAttributes;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF_InMemory;
 import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
@@ -218,8 +219,8 @@ public class EpijuvStage extends AbstractLHS {
             if (newID==-1) {
                 lhs.atts.setValue(EpijuvStageAttributes.PROP_origID,newID);
             }
+            lhs.initialize();//initialize instance variables
         }
-        lhs.initialize();//initialize instance variables
         return lhs;
     }
 
@@ -288,10 +289,8 @@ public class EpijuvStage extends AbstractLHS {
             for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));}
         else if(newAtts instanceof FDLpfStageAttributes) {
             FDLpfStageAttributes oldAtts = (FDLpfStageAttributes) newAtts;
-            for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
-           //SH_NEW
-            // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
-            atts.setValue(EpijuvStageAttributes.PROP_length,oldAtts.getValue(FDLpfStageAttributes.PROP_length, length));
+            //all attributes in FDLpfStageAttributes are also in EpijuvStageAttributes with same keys
+            for (String key: oldAtts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
         } else {
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
@@ -589,7 +588,7 @@ public class EpijuvStage extends AbstractLHS {
             //interpolate initial position and environmental variables
             double[] pos = lp.getIJK();
             updatePosition(pos);
-            interpolateEnvVars(pos);
+            updateEnvVars(pos);
             updateAttributes(); 
         }
     }
@@ -635,7 +634,7 @@ public class EpijuvStage extends AbstractLHS {
         length += (gL*dtday);
         
         updatePosition(pos);
-        interpolateEnvVars(pos);
+        updateEnvVars(pos);
         updateNum(dt);
         updateAge(dt);
         
@@ -785,7 +784,7 @@ public class EpijuvStage extends AbstractLHS {
      * </pre>
      * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
      */
-    private void interpolateEnvVars(double[] pos) {
+    private void updateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
         if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
@@ -797,8 +796,11 @@ public class EpijuvStage extends AbstractLHS {
         if (i3d.getPhysicalEnvironment().getField(FIELD_NCa)!=null) 
             neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
         if (fcnHSI instanceof HSMFunction_Constant){
-            hsi = ((double[])fcnHSI.calculate(null))[0];//constant value
+            hsi = (Double)fcnHSI.calculate(null);//constant value
         } else if (fcnHSI instanceof HSMFunction_NetCDF){
+            double[] posLL = new double[]{lon,lat};
+            hsi = (Double)fcnHSI.calculate(posLL);
+        } else if (fcnHSI instanceof HSMFunction_NetCDF_InMemory){
             double[] posLL = new double[]{lon,lat};
             hsi = (Double)fcnHSI.calculate(posLL);
         }

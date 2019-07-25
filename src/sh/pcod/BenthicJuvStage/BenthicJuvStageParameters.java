@@ -19,6 +19,7 @@ import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
+import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF_InMemory;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.AbstractLHSParameters;
@@ -97,14 +98,15 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
         cat = FCAT_Mortality;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); 
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new ConstantMortalityRate();        mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         
         cat = FCAT_HSM;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctions = new LinkedHashMap<>(6); 
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new HSMFunction_Constant(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        ifi = new HSMFunction_NetCDF();   mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new HSMFunction_Constant();          mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new HSMFunction_NetCDF();            mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new HSMFunction_NetCDF_InMemory();   mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**
