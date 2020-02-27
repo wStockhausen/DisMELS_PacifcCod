@@ -98,8 +98,9 @@ public class EggStageParameters extends AbstractLHSParameters {
         cat = FCAT_Mortality;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); 
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
-        ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new ConstantMortalityRate();        mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new IBMFunction_HatchSuccess();     mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
         
     /**
@@ -210,6 +211,7 @@ public class EggStageParameters extends AbstractLHSParameters {
      * Adds a PropertyChangeListener to the listener list.
      * @param l The listener to add.
      */
+    @Override
     public void addPropertyChangeListener(java.beans.PropertyChangeListener l) {
         propertySupport.addPropertyChangeListener(l);
     }
@@ -218,6 +220,7 @@ public class EggStageParameters extends AbstractLHSParameters {
      * Removes a PropertyChangeListener from the listener list.
      * @param l The listener to remove.
      */
+    @Override
     public void removePropertyChangeListener(java.beans.PropertyChangeListener l) {
         propertySupport.removePropertyChangeListener(l);
     }

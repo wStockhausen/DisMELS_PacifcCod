@@ -99,7 +99,7 @@ public class EggStage extends AbstractLHS {
     protected double rho = 0;
     /**growth in egg diameter mm/d */
     protected double gD = 0;
-    /**Egg stage duration and progression through stage*/
+    /**Egg stage duration and progression through stage */
     protected double stagedur = 0;
     protected double stageratio = 0;
     
@@ -432,7 +432,7 @@ public class EggStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         //SH_NEW:
-        if (((ageInStage+dtp)>=minStageDuration) && (stageratio >=1.0)) {
+        if (((ageInStage+dtp)>=minStageDuration) && (stageratio>=1.0)) {
             if ((numTrans>0)||!isSuperIndividual){
                 devStage=1;
                 nLHSs = createNextLHS();
@@ -575,7 +575,8 @@ public class EggStage extends AbstractLHS {
         //Pacific cod eggs are demersal, and assumed to be fixed in place
         //so location does not change
         double[] pos = lp.getIJK();
-        double T = i3d.interpolateTemperature(pos);
+//        double T = i3d.interpolateTemperature(pos);//Hinckley version, shouldn't need to recalc
+        double T = temperature;
         if(T<=0.0) T=0.01; 
         
         //SH_NEW-Prey Stuff  
@@ -591,12 +592,12 @@ public class EggStage extends AbstractLHS {
         diam += (gD * dtday);
         stagedur = 46.597 - (4.079 * T);
         //stagedur = 44.4857 - (7.3857*T) + (0.4524*T*T);
-        stageratio += (1.0 / stagedur)*dtday;
+        stageratio += (1.0/stagedur)*dtday;
         
         updateNum(dt);
         updateAge(dt);
         updatePosition(pos);
-        interpolateEnvVars(pos);
+        interpolateEnvVars(pos);//
         //check for exiting grid
         if (i3d.isAtGridEdge(pos,tolGridEdge)){
             alive=false;
@@ -626,25 +627,30 @@ public class EggStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateNum(double dt) {
-        //{WTS_NEW 2012-07-26:
-        double mortalityRate = 0.0D;//in unis of [days]^-1
-        if (fcnMortality instanceof ConstantMortalityRate){
-            mortalityRate = (Double)fcnMortality.calculate(null);
-        } else 
-        if (fcnMortality instanceof InversePowerLawMortalityRate){
-        //SH_NEW
-        //    mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+        if (fcnMortality instanceof IBMFunction_HatchSuccess){
+            if ((stageratio>=1.0)||(maxStageDuration<=ageInStage)){
+                double h = (Double)fcnMortality.calculate(temperature);//hatch success
+                number = h* number;
+                return;
+            }
+        } else {
+            double mortalityRate = 0.0D;//in units of [days]^-1
+            if (fcnMortality instanceof ConstantMortalityRate){
+                mortalityRate = (Double)fcnMortality.calculate(null);
+            } else 
+            if (fcnMortality instanceof InversePowerLawMortalityRate){
+                mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+            } 
+            double totRate = mortalityRate;
+            if ((ageInStage>=minStageDuration)) {
+                totRate += stageTransRate;
+                //apply mortality rate to previous number transitioning and
+                //add in new transitioners
+                numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
+                        (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
+            }
+            number = number*Math.exp(-dt*totRate/86400);
         }
-        double totRate = mortalityRate;
-        if ((ageInStage>=minStageDuration)) {
-            totRate += stageTransRate;
-            //apply mortality rate to previous number transitioning and
-            //add in new transitioners
-            numTrans = numTrans*Math.exp(-dt*mortalityRate/86400)+
-                    (stageTransRate/totRate)*number*(1-Math.exp(-dt*totRate/86400));
-        }
-        number = number*Math.exp(-dt*totRate/86400);
-        //}: WTS_NEW 2012-07-26
     }
     
     private void updatePosition(double[] pos) {
