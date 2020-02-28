@@ -594,8 +594,8 @@ public class EggStage extends AbstractLHS {
         //stagedur = 44.4857 - (7.3857*T) + (0.4524*T*T);
         stageratio += (1.0/stagedur)*dtday;
         
-        updateNum(dt);
         updateAge(dt);
+        updateNum(dt);
         updatePosition(pos);
         interpolateEnvVars(pos);//
         //check for exiting grid
@@ -630,7 +630,7 @@ public class EggStage extends AbstractLHS {
         if (fcnMortality instanceof IBMFunction_HatchSuccess){
             if ((stageratio>=1.0)||(maxStageDuration<=ageInStage)){
                 double h = (Double)fcnMortality.calculate(temperature);//hatch success
-                number = h* number;
+                number *= h;
                 return;
             }
         } else {
