@@ -104,6 +104,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
+                <package>sh.pcod</package>
                 <package>sh.pcod.BenthicJuvStage</package>
                 <package>sh.pcod.EggStage</package>
                 <package>sh.pcod.EpijuvStage</package>
