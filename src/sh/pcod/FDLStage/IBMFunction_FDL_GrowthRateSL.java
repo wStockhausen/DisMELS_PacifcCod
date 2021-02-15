@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package sh.pcod.FDLpfStage;
+package sh.pcod.FDLStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -12,9 +12,10 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 
 /**
- * IBM function to calculate FDLpf growth rate using
- *   rate = (1.652 + 1.059*T - 0.028*T^2)/100 in g/g/d dry weight
- * from Hurst et al. (2010), where T is temperature in deg C.
+ * IBM function to calculate temperature-dependent FDL growth rate using
+ *   rate = (0.0179 + (0.015 * t) - (0.0001 * T * T)) in mm/d
+ * where T is temperature (deg C).This is the corrected version of the 
+ * Hurst et al. (2010) equation.
  * 
  * @author WilliamStockhausen
  */
@@ -23,17 +24,17 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_GrowthRateDW_FDLpf extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
+public class IBMFunction_FDL_GrowthRateSL extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod FDLpf";
+    public static final String DEFAULT_name = "Growth rate (mm/d) in standard length for Pacific cod FDL";
     /** function description */
-    public static final String DEFAULT_descr = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod FDLpf";
+    public static final String DEFAULT_descr = "Growth rate (mm/d) in standard length for Pacific cod FDL";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in dry weight for Pacific cod FDLpf."+
+        "\n\t* This function provides an implementation of the corrected Hurst et al. (2010)"+
+        "\n\t* temperature-dependent function for growth in standard length of Pacific cod FDL."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -41,9 +42,9 @@ public class IBMFunction_GrowthRateDW_FDLpf extends AbstractIBMFunction implemen
         "\n\t* Variables:"+
         "\n\t*      t - Double value of temperature (deg C)"+
         "\n\t* Value:"+
-        "\n\t*      r - Double - intrinsic growth rate for FDLpf dry weight (g/g/d)"+
+        "\n\t*      r - Double - growth rate (mm/d)"+
         "\n\t* Calculation:"+
-        "\n\t*     r = (1.652 + 1.059*t - 0.028*t*t)/100;"+
+        "\n\t*     r = 0.0179 + (0.015 * t) - (0.0001 * t * t)"+
         "\n\t* "+
         "\n\t*  Citation:"+
         "\n\t* Hurst et al. 2010."+
@@ -52,13 +53,13 @@ public class IBMFunction_GrowthRateDW_FDLpf extends AbstractIBMFunction implemen
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_GrowthRateDW_FDLpf(){
+    public IBMFunction_FDL_GrowthRateSL(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_GrowthRateDW_FDLpf clone = new IBMFunction_GrowthRateDW_FDLpf();
+        IBMFunction_FDL_GrowthRateSL clone = new IBMFunction_FDL_GrowthRateSL();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -73,17 +74,17 @@ public class IBMFunction_GrowthRateDW_FDLpf extends AbstractIBMFunction implemen
     }
     
     /**
-     * Calculates growth rate in dry weight (g/g/d) based on input temperature. 
+     * Calculates growth rate in standard length (mm.d) based on input temperature. 
      * 
      * @param o - Double with value for in situ temperature in deg C.
      * 
-     * @return Double - growth rate (g/g//d)
+     * @return Double - growth rate (mm/d)
      * 
      */
     @Override
     public Object calculate(Object o) {
         double t = (Double) o;
-        double r = (1.652 + 1.059*t - 0.028*t*t)/100;
+        double r = (0.0179 + (0.015 * t) - (0.0001 * t * t));
         return (Double) r;
     }
     

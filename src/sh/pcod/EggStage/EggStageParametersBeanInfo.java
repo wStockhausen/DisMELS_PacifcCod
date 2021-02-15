@@ -9,7 +9,7 @@ import java.beans.*;
 
 /**
  *
- * @author WilliamStockhausen
+ * @author williamstockhausen
  */
 public class EggStageParametersBeanInfo extends SimpleBeanInfo {
 

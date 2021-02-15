@@ -2,7 +2,11 @@
  * EggStageAttributes.java
  *
  * Updated 10/11/2018:
- *   Added "attached" as attribute due to changes in DisMELS framework
+ *   Added "attached" as attribute due to changes in DisMELS framework.
+ * 2021-02-04: 1. Removed devStage, cop, eup, and nCa as attributes.
+ *             2. Changed "diameter" to "SL" and "egg diameter" to "embryo SL".
+ * 2021-02-08: 1. Added attributes embryo dry weight and growth rates for SL and DW.
+ * 2021-02-11: 1. Added egg stage progression attribute.
  *
  */
 
@@ -18,6 +22,9 @@ import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
 
 /**
  * DisMELS class representing attributes for Pacific cod eggs.
+ * 
+ * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=wts.models.DisMELS.framework.LifeStageAttributesInterface.class)
 public class EggStageAttributes extends AbstractLHSAttributes   {
@@ -25,13 +32,13 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
     /** Number of new attributes defined by this class */
     public static final int numNewAttributes = 10;
     public static final String PROP_attached    = "attached";
-    public static final String PROP_devStage    = "development stage";
-    public static final String PROP_diameter    = "egg diameter";
+    public static final String PROP_stgProg     = "egg stage progression";
+    public static final String PROP_SL          = "embryo SL (mm)";
+    public static final String PROP_DW          = "embryo DW (mg)";
+    public static final String PROP_grSL        = "growth rate for SL (mm/d)";
+    public static final String PROP_grDW        = "growth rate for DW (1/d)";
     public static final String PROP_density     = "egg density";
     public static final String PROP_temperature = "temperature deg C";
-    public static final String PROP_copepod     = "Small copepods mg/m^3 dry wt C";
-    public static final String PROP_euphausiid  = "Euphausiids mg/m^3 dry wt C";
-    public static final String PROP_neocalanus  = "Neocalanoids mg/m^3 dry wt";    
     public static final String PROP_salinity    = "salinity";
     public static final String PROP_rho         = "in situ density";
     
@@ -93,13 +100,13 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
             mapAllAttributes.putAll(AbstractLHSAttributes.mapAttributes);//add from superclass
             String key;
             key = PROP_attached;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeBoolean(key,"attached"));
-            key = PROP_devStage;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"devStage"));
-            key = PROP_diameter;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"diam"));
+            key = PROP_stgProg;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"stgProg"));
+            key = PROP_SL;         newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"SL"));
+            key = PROP_DW;         newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"DW"));
+            key = PROP_grSL;       newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"grSL"));
+            key = PROP_grDW;       newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"grDW"));
             key = PROP_density;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"density"));
             key = PROP_temperature;newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"temp"));
-            key = PROP_copepod;    newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"copepod"));
-            key = PROP_euphausiid; newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"euphausiid"));
-            key = PROP_neocalanus; newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"neocalanus"));
             key = PROP_salinity;   newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"sal"));
             key = PROP_rho;        newKeys.add(key); mapAllAttributes.put(key,new IBMAttributeDouble(key,"rho"));
             allKeys.addAll(AbstractLHSAttributes.keys);//add from superclass
@@ -112,13 +119,13 @@ public class EggStageAttributes extends AbstractLHSAttributes   {
         Map<String,Object> tmpMapValues = new HashMap<>((int)(2*(numNewAttributes+numAttributes)));
         tmpMapValues.putAll(mapValues);//copy from super
         tmpMapValues.put(PROP_attached,   true);
-        tmpMapValues.put(PROP_devStage,   new Double(0));
-        tmpMapValues.put(PROP_diameter,   new Double(0));
+        tmpMapValues.put(PROP_stgProg,    new Double(0));
+        tmpMapValues.put(PROP_SL,         new Double(0));
+        tmpMapValues.put(PROP_DW,         new Double(0));
+        tmpMapValues.put(PROP_grSL,       new Double(0));
+        tmpMapValues.put(PROP_grDW,       new Double(0));
         tmpMapValues.put(PROP_density,    new Double(0));
         tmpMapValues.put(PROP_temperature,new Double(-1));
-        tmpMapValues.put(PROP_copepod,    new Double(-1));
-        tmpMapValues.put(PROP_euphausiid, new Double(-1));
-        tmpMapValues.put(PROP_neocalanus, new Double(-1));
         tmpMapValues.put(PROP_salinity,   new Double(-1));
         tmpMapValues.put(PROP_rho,        new Double(-1));
         mapValues = tmpMapValues;//assign to super

@@ -5,13 +5,14 @@
  *   Removed all function categories except "mortality" because they
  *     were not being used (development is hard-wired, eggs don't move).
  *
+ * 20210204: 1. Added IBMFunction categories for stage duration and growth in SL and DW.
+ * 20210208: 1. Added integer flags for IBMFunctions.
  */
 
 package sh.pcod.EggStage;
 
 import java.beans.PropertyChangeSupport;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -26,12 +27,12 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMParameterDouble;
 import wts.models.DisMELS.framework.LifeStageParametersInterface;
 
 /**
- * DisMELS class representing parameters for Pacific cod eggs
- * for the GOA IERP Modeling project.
+ * DisMELS class representing parameters for Pacific cod eggs.
  * 
  * This class uses the IBMParameters/IBMFunctions approach to specifying stage-specific parameters.
  * 
- * @author William Stockhausen/Sarah Hinckley
+ * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageParametersInterface.class)
 public class EggStageParameters extends AbstractLHSParameters {
@@ -47,8 +48,23 @@ public class EggStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 1;
+    public static final int numFunctionCats = 4;
     public static final String FCAT_Mortality = "mortality";
+    public static final String FCAT_GrowthSL  = "embryo SL growth rates";
+    public static final String FCAT_GrowthDW  = "embryo DW growth rates";
+    public static final String FCAT_StageDuration = "stage duration (d)";
+    
+    public static final int FCN_Mortality_ConstantMortalityRate        = 1;
+    public static final int FCN_Mortality_InversePowerLawMortalityRate = 2;
+    public static final int FCN_Mortality_HatchSuccess                 = 3;
+    
+    public static final int FCN_GrSL_EggStageSTDGrowthRate = 1;
+    public static final int FCN_GrSL_EggStage_GrowthRate   = 2;
+    
+    public static final int FCN_GrDW_EggStageSTDGrowthRate = 1;
+    public static final int FCN_GrDW_EggStage_GrowthRate   = 2;
+    
+    public static final int FCN_StageDur_EggStageDur = 1;
     
     private static final Logger logger = Logger.getLogger(EggStageParameters.class.getName());
     
@@ -98,9 +114,26 @@ public class EggStageParameters extends AbstractLHSParameters {
         cat = FCAT_Mortality;  
         mapOfPotentialFunctions = new LinkedHashMap<>(4); 
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_HatchSuccess();     mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new ConstantMortalityRate();        mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
-        ifi = new IBMFunction_HatchSuccess();     mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthSL; //functions for growth of embryo in standard length (mm) 
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new sh.pcod.EggStage.IBMFunction_EggStageGrowthRateSL();    mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new sh.pcod.EggStage.IBMFunction_EggStageSTDGrowthRateSL(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthDW; //functions for growth of embryo in dry weight (micrograms) 
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new sh.pcod.EggStage.IBMFunction_EggStageGrowthRateDW();    mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new sh.pcod.EggStage.IBMFunction_EggStageSTDGrowthRateDW(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_StageDuration; //functions for egg stage duration
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new sh.pcod.EggStage.IBMFunction_EggStageDuration(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
         
     /**

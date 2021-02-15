@@ -3,64 +3,61 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package sh.pcod.BenthicJuvStage;
+package sh.pcod.FDLpfStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
 import wts.models.DisMELS.framework.IBMFunctions.AbstractIBMFunction;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 
 /**
- * IBM function to calculate benthic juvenile growth rate using
- *   rate = (-0.998 + 0.579*T - 0.022*T^2)/100 in g/g/d wet weight, 
- * where T is temperature in deg C.
- * 
- * From Hurst et al. (2010).
+ * IBM function to calculate temperature-dependent FDLpf vertical swimming speed using
+ *   s = ((0.081221 + 0.043168*log10[t]) * TL^1.49652) in mm/s
+ * where t is temperature (deg C) and TL is total length in mm.
  * 
  * @author WilliamStockhausen
  */
 @ServiceProviders(value={
-    @ServiceProvider(service=IBMGrowthFunctionInterface.class),
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_GrowthRateWW_BenthicJuv extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
-    public static final String DEFAULT_type = "Growth";
+public class IBMFunction_FDLpf_VerticalSwimmingSpeed extends AbstractIBMFunction {
+    public static final String DEFAULT_type = "Vertical swimming speed";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Intrinsic growth rate (g/g/d) in wet weight for Pacific cod benthic juveniles";
+    public static final String DEFAULT_name = "Vertical swimming speed (mm/s) for Pacific cod FDLpf as function of temperature and size";
     /** function description */
-    public static final String DEFAULT_descr = "Intrinsic growth rate (g/g/d) in wet weight for Pacific cod benthic juveniles";
+    public static final String DEFAULT_descr = "Vertical swimming speed (mm/s) for Pacific cod FDLpf as function of temperature and size";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in wet weight for Pacific cod benthic juveniles."+
+        "\n\t* This function provides an implementation of vertical swimming speed (mm/s)"+
+        "\n\t* for Pacific cod FDLpf as a function of temperature and total length"+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
         "\n\t* "+
         "\n\t* Variables:"+
         "\n\t*      t - Double value of temperature (deg C)"+
+        "\n\t*      z - Double value of total length (mm)"+
         "\n\t* Value:"+
-        "\n\t*      r - Double - intrinsic growth rate for benthic juvenile wet weight (g/g/d)"+
+        "\n\t*      s - Double - vertical swimming speed (mm/s)"+
         "\n\t* Calculation:"+
-        "\n\t*     r = (-0.998 + 0.579*t - 0.022*t*t)/100; (original eq. in %/d)"+
+        "\n\t*     s = ((0.081221 + 0.043168 log10[t]) * TL^1.49652)"+
         "\n\t* "+
         "\n\t*  Citation:"+
-        "\n\t* Hurst et al. 2010."+
+        "\n\t* Hurst, pers. comm."+
         "\n\t**************************************************************************";
     /** number of settable parameters */
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_GrowthRateWW_BenthicJuv(){
+    public IBMFunction_FDLpf_VerticalSwimmingSpeed(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_GrowthRateWW_BenthicJuv clone = new IBMFunction_GrowthRateWW_BenthicJuv();
+        IBMFunction_FDLpf_VerticalSwimmingSpeed clone = new IBMFunction_FDLpf_VerticalSwimmingSpeed();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -75,18 +72,22 @@ public class IBMFunction_GrowthRateWW_BenthicJuv extends AbstractIBMFunction imp
     }
     
     /**
-     * Calculates growth rate in wet weight (g/g/d) based on input temperature. 
+     * Calculates vertical swimming speed based on input temperature and total length (mm). 
      * 
-     * @param o - Double with value for in situ temperature in deg C.
+     * @param o - Double[] with values 
+     *        o[1] - in situ temperature in deg C
+     *        o[2] - total length of fish (mm)
      * 
-     * @return Double - growth rate (g/g//d in wet weight)
+     * @return Double - vertical swimming speed (mm/s)
      * 
      */
     @Override
     public Object calculate(Object o) {
-        double t = (Double) o;
-        double r = (-0.998 + 0.579*t - 0.022*t*t)/100;//original eq. in %/d
-        return (Double) r;
+        Double[] vals = (Double[])o;
+        double t  = vals[0];//temperature
+        double tl = vals[1];//total length
+        double s = (0.081221 + 0.043168*Math.log10(t)) * Math.pow(tl,1.49652);
+        return (Double) s;
     }
     
 }

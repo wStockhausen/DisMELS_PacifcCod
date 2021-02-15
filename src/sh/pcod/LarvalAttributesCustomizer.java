@@ -12,17 +12,17 @@ import wts.models.DisMELS.gui.AttributesCustomizer;
 /**
  * @author William Stockhausen
  */
-public class NonEggStageAttributesCustomizer extends AttributesCustomizer {
+public class LarvalAttributesCustomizer extends AttributesCustomizer {
 
     private boolean showHorizPos = true;
     private boolean showVertPos = true;
     
-    private AbstractNonEggStageAttributes attributes = null;
+    private AbstractLarvalAttributes attributes = null;
     
     /**
      * Creates new customizer NonEggStageAttributesCustomizer
      */
-    public NonEggStageAttributesCustomizer() {
+    public LarvalAttributesCustomizer() {
         initComponents();
     }
     
@@ -98,7 +98,7 @@ public class NonEggStageAttributesCustomizer extends AttributesCustomizer {
 
     private void jtfDiameterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jtfDiameterActionPerformed
         Double n = new Double(jtfDiameter.getText());
-        attributes.setValue(attributes.PROP_length,n);
+        attributes.setValue(attributes.PROP_SL,n);
     }//GEN-LAST:event_jtfDiameterActionPerformed
 
     private void jchkAttachedItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_jchkAttachedItemStateChanged
@@ -107,24 +107,24 @@ public class NonEggStageAttributesCustomizer extends AttributesCustomizer {
 
     @Override
     public void setObject(Object bean) {
-        if (bean instanceof AbstractNonEggStageAttributes) {
-            setAttributes((AbstractNonEggStageAttributes) bean);
+        if (bean instanceof AbstractLarvalAttributes) {
+            setAttributes((AbstractLarvalAttributes) bean);
         }
     }
     
     @Override
-    public AbstractNonEggStageAttributes getAttributes() {
+    public AbstractLarvalAttributes getAttributes() {
         return attributes;
     }
     
     @Override
     public void setAttributes(LifeStageAttributesInterface newAtts) {
-        if (newAtts instanceof AbstractNonEggStageAttributes) {
-            attributes = (AbstractNonEggStageAttributes) newAtts;
+        if (newAtts instanceof AbstractLarvalAttributes) {
+            attributes = (AbstractLarvalAttributes) newAtts;
             czrStandardAttributes.setObject(attributes);
             Double d = null;
             jchkAttached.setSelected(attributes.getValue(attributes.PROP_attached,true));
-            jtfDiameter.setText(attributes.getValue(attributes.PROP_length,d).toString());
+            jtfDiameter.setText(attributes.getValue(attributes.PROP_SL,d).toString());
         }
     }
     

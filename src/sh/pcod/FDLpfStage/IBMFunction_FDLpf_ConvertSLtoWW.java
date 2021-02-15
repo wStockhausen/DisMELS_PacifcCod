@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package sh.pcod.FDLStage;
+package sh.pcod.FDLpfStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -11,9 +11,7 @@ import wts.models.DisMELS.framework.IBMFunctions.AbstractIBMFunction;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 
 /**
- * IBM function to calculate temperature-dependent FDL vertical swimming speed using
- *   s = ((0.081221 + 0.043168*log10[t]) * TL^1.49652) in mm/s
- * where t is temperature (deg C) and TL is total length in mm.
+ * IBM function to convert standard length (mm) to wet weight (mg).
  * 
  * @author WilliamStockhausen
  */
@@ -21,43 +19,41 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_VerticalSwimmingSpeed_FDL extends AbstractIBMFunction {
-    public static final String DEFAULT_type = "Vertical swimming speed";
+public class IBMFunction_FDLpf_ConvertSLtoWW extends AbstractIBMFunction {
+    public static final String DEFAULT_type = "Conversion";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Vertical swimming speed (mm/s) for Pacific cod FDL as function of temperature and size";
+    public static final String DEFAULT_name = "Convert standard length to wet weightf";
     /** function description */
-    public static final String DEFAULT_descr = "Vertical swimming speed (mm/s) for Pacific cod FDL as function of temperature and size";
+    public static final String DEFAULT_descr = "Convert standard length to wet weight";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of vertical swimming speed (mm/s)"+
-        "\n\t* for Pacific cod FDL as a function of temperature and total length"+
+        "\n\t* This function converts standard length to total length for Pacific cod FDLpf."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
         "\n\t* "+
         "\n\t* Variables:"+
-        "\n\t*      t - Double value of temperature (deg C)"+
-        "\n\t*      z - Double value of total length (mm)"+
+        "\n\t*      sl - Double value of standard length (mm)"+
         "\n\t* Value:"+
-        "\n\t*      s - Double - vertical swimming speed (mm/s)"+
+        "\n\t*      ww - Double - wet weight (mg)"+
         "\n\t* Calculation:"+
-        "\n\t*     s = ((0.081221 + 0.043168 log10[t]) * TL^1.49652)"+
+        "\n\t*     ww = 1000*exp(-17.7329551 + 6.7316061*ln(sl) - 0.5682575 * ln(sl)^2 + (0.09793041^2)/2);"+
         "\n\t* "+
         "\n\t*  Citation:"+
-        "\n\t* Hurst, pers. comm."+
+        "\n\t* Stockhausen, unpublished; based on data from Hurst et al. 2010."+
         "\n\t**************************************************************************";
     /** number of settable parameters */
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_VerticalSwimmingSpeed_FDL(){
+    public IBMFunction_FDLpf_ConvertSLtoWW(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_VerticalSwimmingSpeed_FDL clone = new IBMFunction_VerticalSwimmingSpeed_FDL();
+        IBMFunction_FDLpf_ConvertSLtoWW clone = new IBMFunction_FDLpf_ConvertSLtoWW();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -72,22 +68,18 @@ public class IBMFunction_VerticalSwimmingSpeed_FDL extends AbstractIBMFunction {
     }
     
     /**
-     * Calculates vertical swimming speed based on input temperature and total length (mm). 
+     * Convert standard length (mm) to wet weight (mg). 
      * 
-     * @param o - Double[] with values 
-     *        o[1] - in situ temperature in deg C
-     *        o[2] - total length of fish (mm)
+     * @param o - standard length (in mm) as Double.
      * 
-     * @return Double - vertical swimming speed (mm/s)
+     * @return Double - wet weight in mg
      * 
      */
     @Override
     public Object calculate(Object o) {
-        Double[] vals = (Double[])o;
-        double t  = vals[0];//temperature
-        double tl = vals[1];//total length
-        double s = (0.081221 + 0.043168*Math.log10(t)) * Math.pow(tl,1.49652);
-        return (Double) s;
+        double lnSL = Math.log((Double) o);
+        double ww = 1000*Math.exp(-17.7329551 + 6.7316061*lnSL - 0.5682575 * lnSL*lnSL + Math.pow(0.09793041,2)/2);
+        return (Double) ww;
     }
     
 }

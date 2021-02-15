@@ -9,55 +9,56 @@ import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
 import wts.models.DisMELS.framework.IBMFunctions.AbstractIBMFunction;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
+import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 
 /**
- * IBM function to calculate temperature-dependent FDLpf vertical swimming speed using
- *   s = ((0.081221 + 0.043168*log10[t]) * TL^1.49652) in mm/s
- * where t is temperature (deg C) and TL is total length in mm.
+ * IBM function to calculate FDLpf growth rate using
+ *   rate = (1.652 + 1.059*T - 0.028*T^2)/100 in g/g/d dry weight
+ * from Hurst et al. (2010), where T is temperature in deg C.
  * 
  * @author WilliamStockhausen
  */
 @ServiceProviders(value={
+    @ServiceProvider(service=IBMGrowthFunctionInterface.class),
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_VerticalSwimmingSpeed_FDLpf extends AbstractIBMFunction {
-    public static final String DEFAULT_type = "Vertical swimming speed";
+public class IBMFunction_FDLpf_GrowthRateDW extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
+    public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Vertical swimming speed (mm/s) for Pacific cod FDLpf as function of temperature and size";
+    public static final String DEFAULT_name = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod FDLpf";
     /** function description */
-    public static final String DEFAULT_descr = "Vertical swimming speed (mm/s) for Pacific cod FDLpf as function of temperature and size";
+    public static final String DEFAULT_descr = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod FDLpf";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of vertical swimming speed (mm/s)"+
-        "\n\t* for Pacific cod FDLpf as a function of temperature and total length"+
+        "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
+        "\n\t* temperature-dependent function for growth in dry weight for Pacific cod FDLpf."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
         "\n\t* "+
         "\n\t* Variables:"+
         "\n\t*      t - Double value of temperature (deg C)"+
-        "\n\t*      z - Double value of total length (mm)"+
         "\n\t* Value:"+
-        "\n\t*      s - Double - vertical swimming speed (mm/s)"+
+        "\n\t*      r - Double - intrinsic growth rate for FDLpf dry weight (g/g/d)"+
         "\n\t* Calculation:"+
-        "\n\t*     s = ((0.081221 + 0.043168 log10[t]) * TL^1.49652)"+
+        "\n\t*     r = (1.652 + 1.059*t - 0.028*t*t)/100;"+
         "\n\t* "+
         "\n\t*  Citation:"+
-        "\n\t* Hurst, pers. comm."+
+        "\n\t* Hurst et al. 2010."+
         "\n\t**************************************************************************";
     /** number of settable parameters */
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_VerticalSwimmingSpeed_FDLpf(){
+    public IBMFunction_FDLpf_GrowthRateDW(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_VerticalSwimmingSpeed_FDLpf clone = new IBMFunction_VerticalSwimmingSpeed_FDLpf();
+        IBMFunction_FDLpf_GrowthRateDW clone = new IBMFunction_FDLpf_GrowthRateDW();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -72,22 +73,18 @@ public class IBMFunction_VerticalSwimmingSpeed_FDLpf extends AbstractIBMFunction
     }
     
     /**
-     * Calculates vertical swimming speed based on input temperature and total length (mm). 
+     * Calculates growth rate in dry weight (g/g/d) based on input temperature. 
      * 
-     * @param o - Double[] with values 
-     *        o[1] - in situ temperature in deg C
-     *        o[2] - total length of fish (mm)
+     * @param o - Double with value for in situ temperature in deg C.
      * 
-     * @return Double - vertical swimming speed (mm/s)
+     * @return Double - growth rate (g/g//d)
      * 
      */
     @Override
     public Object calculate(Object o) {
-        Double[] vals = (Double[])o;
-        double t  = vals[0];//temperature
-        double tl = vals[1];//total length
-        double s = (0.081221 + 0.043168*Math.log10(t)) * Math.pow(tl,1.49652);
-        return (Double) s;
+        double t = (Double) o;
+        double r = (1.652 + 1.059*t - 0.028*t*t)/100;
+        return (Double) r;
     }
     
 }

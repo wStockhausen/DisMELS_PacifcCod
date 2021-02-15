@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package sh.pcod.EggStage;
+package sh.pcod.FDLpfStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -12,11 +12,9 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 
 /**
- * IBM function to calculate temperature-dependent egg diameter growth rate using
- *   rate = 0.104 + (0.024 * T) - (0.00002 * T * T) in mm/d
- * where T is temperature (deg C).
- * 
- * From Hurst et al. (2010) equation.
+ * IBM function to calculate temperature-dependent FDLpf growth rate using
+ *   rate = 0.034 + (0.043*T) - (0.0008*T^2) in mm/d
+ * where T is temperature (deg C). From Hurst et al. (2010) equation.
  * 
  * @author WilliamStockhausen
  */
@@ -25,17 +23,17 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_EggStageGrowthRateDiameter extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
+public class IBMFunction_FDLpf_GrowthRateSL extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Growth rate (mm/d) in diameter for Pacific cod eggs";
+    public static final String DEFAULT_name = "Growth rate (mm/d) in standard length for Pacific cod FDLpf";
     /** function description */
-    public static final String DEFAULT_descr = "Growth rate (mm/d) in diameter for Pacific cod eggs";
+    public static final String DEFAULT_descr = "Growth rate (mm/d) in standard length for Pacific cod FDLpf";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
         "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in diameter of Pacific cod eggs."+
+        "\n\t* temperature-dependent function for growth in standard length of Pacific cod FDLpf."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -45,7 +43,7 @@ public class IBMFunction_EggStageGrowthRateDiameter extends AbstractIBMFunction 
         "\n\t* Value:"+
         "\n\t*      r - Double - growth rate (mm/d)"+
         "\n\t* Calculation:"+
-        "\n\t*     r = 0.104 + (0.024 * t) - (0.00002 * t * t)"+
+        "\n\t*     r = 0.034 + (0.043*t) - (0.0008*t*t)"+
         "\n\t* "+
         "\n\t*  Citation:"+
         "\n\t* Hurst et al. 2010."+
@@ -54,13 +52,13 @@ public class IBMFunction_EggStageGrowthRateDiameter extends AbstractIBMFunction 
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_EggStageGrowthRateDiameter(){
+    public IBMFunction_FDLpf_GrowthRateSL(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_EggStageGrowthRateDiameter clone = new IBMFunction_EggStageGrowthRateDiameter();
+        IBMFunction_FDLpf_GrowthRateSL clone = new IBMFunction_FDLpf_GrowthRateSL();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -75,7 +73,7 @@ public class IBMFunction_EggStageGrowthRateDiameter extends AbstractIBMFunction 
     }
     
     /**
-     * Calculates growth rate in egg diameter (mm/d) based on input temperature. 
+     * Calculates growth rate in standard length (mm/d) based on input temperature. 
      * 
      * @param o - Double with value for in situ temperature in deg C.
      * 
@@ -85,7 +83,7 @@ public class IBMFunction_EggStageGrowthRateDiameter extends AbstractIBMFunction 
     @Override
     public Object calculate(Object o) {
         double t = (Double) o;
-        double r = 0.104 + (0.024 * t) - (0.00002 * t * t);
+        double r = 0.034 + (0.043*t) - (0.0008*t*t);
         return (Double) r;
     }
     

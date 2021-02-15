@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package sh.pcod.FDLStage;
+package sh.pcod.EpijuvStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -19,16 +19,16 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_ConvertSLtoTL_FDL extends AbstractIBMFunction {
+public class IBMFunction_Epijuv_ConvertSLtoTL extends AbstractIBMFunction {
     public static final String DEFAULT_type = "Conversion";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Convert standard length to total length for Pacific cod FDL";
+    public static final String DEFAULT_name = "Convert standard length to total length";
     /** function description */
-    public static final String DEFAULT_descr = "Convert standard length to total length for Pacific cod FDL";
+    public static final String DEFAULT_descr = "Convert standard length to total length";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function converts standard length to total length for Pacific cod FDL."+
+        "\n\t* This function converts standard length to total length for Pacific cod epipelagic juveiles."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -47,13 +47,13 @@ public class IBMFunction_ConvertSLtoTL_FDL extends AbstractIBMFunction {
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_ConvertSLtoTL_FDL(){
+    public IBMFunction_Epijuv_ConvertSLtoTL(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_ConvertSLtoTL_FDL clone = new IBMFunction_ConvertSLtoTL_FDL();
+        IBMFunction_Epijuv_ConvertSLtoTL clone = new IBMFunction_Epijuv_ConvertSLtoTL();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());

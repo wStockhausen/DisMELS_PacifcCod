@@ -6,6 +6,8 @@
  *                were not being used (development is hard-wired, benthic juveniles don't move).
  * 20181015: 1. Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
  * 20190722: 1. Added FCAT_HSM IBMFunction category to incorporate habitat suitabiltiy map-type IBMFunctions.
+ * 20210205: 1. Added IBMFunction categories FCAT_GrowthSL, FCAT_GrowthDW, FCAT_GrowthTL, FCAT_GrowthWW.
+ * 20210208: 1. Added integer flags for IBMFunctions.
  *
  */
 
@@ -17,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateDW;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateSL;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF_InMemory;
@@ -49,9 +53,28 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 2;
+    public static final int numFunctionCats = 6;
     public static final String FCAT_Mortality = "mortality";
+    public static final String FCAT_GrowthSL  = "growth (SL)";
+    public static final String FCAT_GrowthDW  = "growth (DW)";
+    public static final String FCAT_GrowthTL  = "growth (TL)";
+    public static final String FCAT_GrowthWW  = "growth (WW)";
     public static final String FCAT_HSM       = "habitat suitability";
+    
+    public static final int FCN_Mortality_ConstantMortalityRate        = 1;
+    public static final int FCN_Mortality_InversePowerLawMortalityRate = 2;
+    
+    public static final int FCN_GrSL_NonEggStageSTDGrowthRate = 1;
+    
+    public static final int FCN_GrDW_NonEggStageSTDGrowthRate = 1;
+    
+    public static final int FCN_GrTL_BenthicJuv_GrowthRate = 1;
+    
+    public static final int FCN_GrWW_BenthicJuv_GrowthRate = 1;
+    
+    public static final int FCN_HSM_Constant        = 1;
+    public static final int FCN_HSM_NetCDF          = 2;
+    public static final int FCN_HSM_NetCDF_InMemory = 3;
     
     private static final Logger logger = Logger.getLogger(BenthicJuvStageParameters.class.getName());
     
@@ -100,6 +123,26 @@ public class BenthicJuvStageParameters extends AbstractLHSParameters {
         mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new ConstantMortalityRate();        mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthSL; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_NonEggStageSTDGrowthRateSL(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthDW; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_NonEggStageSTDGrowthRateDW(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthTL; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_BenthicJuv_GrowthRateTL();           mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthWW; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_BenthicJuv_GrowthRateWW();           mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         
         cat = FCAT_HSM;  
         mapOfPotentialFunctions = new LinkedHashMap<>(6); 

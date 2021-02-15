@@ -15,7 +15,7 @@ public class FDLpfStageAttributesBeanInfo extends SimpleBeanInfo {
     // Bean descriptor//GEN-FIRST:BeanDescriptor
     /*lazy BeanDescriptor*/
     private static BeanDescriptor getBdescriptor(){
-        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.FDLpfStage.FDLpfStageAttributes.class , sh.pcod.NonEggStageAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
+        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.FDLpfStage.FDLpfStageAttributes.class , sh.pcod.LarvalAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
 
         // Here you can add code for customizing the BeanDescriptor.
 

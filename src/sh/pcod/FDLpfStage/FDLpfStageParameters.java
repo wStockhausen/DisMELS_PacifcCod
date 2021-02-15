@@ -7,6 +7,9 @@
  * Revised on 10/15/2018:
  *   Removed FCAT_VerticalVelocity and associated functions category;
  *     function for w is hard-wired in calcUVW.
+ * 20210205: 1. Added IBMFunction category FCAT_VerticalVelocity back.
+ *           2. Added IBMFunction categories FCAT_GrowthSL, FCAT_GrowthDW.
+ * 20210208: 1. Added integer flags for IBMFunctions.
  *
  */
 
@@ -14,11 +17,12 @@ package sh.pcod.FDLpfStage;
 
 import java.beans.PropertyChangeSupport;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateDW;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateSL;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
@@ -30,12 +34,12 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMParameterDouble;
 import wts.models.DisMELS.framework.LifeStageParametersInterface;
 
 /**
- * DisMELS class representing parameters for Pacific cod eggs
- * for the GOA IERP Modeling project.
+ * DisMELS class representing parameters for Pacific cod postflexion larvae.
  * 
  * This class uses the IBMParameters/IBMFunctions approach to specifying stage-specific parameters.
  * 
- * @author William Stockhausen/Sarah Hinckley
+ * @author William Stockhausen
+ * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageParametersInterface.class)
 public class FDLpfStageParameters extends AbstractLHSParameters {
@@ -51,9 +55,25 @@ public class FDLpfStageParameters extends AbstractLHSParameters {
     public static final String PARAM_useRandomTransitions   = "use random transitions";
     
     /** the number of IBMFunction categories defined in the class */
-    public static final int numFunctionCats = 2;
+    public static final int numFunctionCats = 5;
     public static final String FCAT_Mortality        = "mortality";
+    public static final String FCAT_GrowthSL         = "growth (SL)";
+    public static final String FCAT_GrowthDW         = "growth (DW)";
     public static final String FCAT_VerticalMovement = "vertical movement";
+    public static final String FCAT_VerticalVelocity = "vertical velocity";    
+    
+    public static final int FCN_Mortality_ConstantMortalityRate        = 1;
+    public static final int FCN_Mortality_InversePowerLawMortalityRate = 2;
+    
+    public static final int FCN_GrSL_NonEggStageSTDGrowthRate = 1;
+    public static final int FCN_GrSL_FDLpf_GrowthRate         = 2;
+    
+    public static final int FCN_GrDW_NonEggStageSTDGrowthRate = 1;
+    public static final int FCN_GrDW_FDLpf_GrowthRate         = 2;
+    
+    public static final int FCN_VM_DVM_FixedDepthRanges = 1;
+    
+    public static final int FCN_VV_FDLpf_VerticalSwimmingSpeed = 1;
     
     private static final Logger logger = Logger.getLogger(FDLpfStageParameters.class.getName());
     
@@ -105,9 +125,27 @@ public class FDLpfStageParameters extends AbstractLHSParameters {
         ifi = new ConstantMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         ifi = new InversePowerLawMortalityRate(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
         
+        cat = FCAT_GrowthSL; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_FDLpf_GrowthRateSL();           mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new IBMFunction_NonEggStageSTDGrowthRateSL(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_GrowthDW; 
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_FDLpf_GrowthRateDW();           mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        ifi = new IBMFunction_NonEggStageSTDGrowthRateDW(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
         cat = FCAT_VerticalMovement;  
-        mapOfPotentialFunctions = new LinkedHashMap<>(4); mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        mapOfPotentialFunctions = new LinkedHashMap<>(4); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
         ifi = new DielVerticalMigration_FixedDepthRanges(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
+        
+        cat = FCAT_VerticalVelocity;  
+        mapOfPotentialFunctions = new LinkedHashMap<>(2); 
+        mapOfPotentialFunctionsByCategory.put(cat,mapOfPotentialFunctions);
+        ifi = new IBMFunction_FDLpf_VerticalSwimmingSpeed(); mapOfPotentialFunctions.put(ifi.getFunctionName(),ifi);
     }
     
     /**

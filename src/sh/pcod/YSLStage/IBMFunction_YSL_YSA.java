@@ -1,9 +1,9 @@
 /*
- * IBMFunction_EggStageDuration.java
- * 
- * 2021-02-04: created function.
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
  */
-package sh.pcod.EggStage;
+package sh.pcod.YSLStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -12,11 +12,9 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 
 /**
- * IBM function to calculate temperature-dependent egg stage duration using
- *   D = 46.597 - 4.079 * T in days
- * where T is temperature (deg C).
- * 
- * From Hurst et al. (2010) equation.
+ * IBM function to calculate YSL time to yolk-sac absorption (in days) using
+ *   YSA = 14.7662 * exp(-0.235 * T)
+ * from Laurel et al. (2008).
  * 
  * @author WilliamStockhausen
  */
@@ -25,17 +23,17 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_EggStageDuration extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
+public class IBMFunction_YSL_YSA extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Temperature-dependent stage duration for Pacific cod eggs-embryos";
+    public static final String DEFAULT_name = "time to yolk-sac absorption (in days) for Pacific cod YSL";
     /** function description */
-    public static final String DEFAULT_descr = "Temperature-dependent stage duration for Pacific cod eggs-embryos";
+    public static final String DEFAULT_descr = "time to yolk-sac absorption (in days) for Pacific cod YSL";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in dry weight of Pacific cod eggs-embryos."+
+        "\n\t* This function provides an implementation of the Laurel et al. (2008)"+
+        "\n\t* temperature-dependent function for time to yolk-sac absorption (in days) for Pacific cod YSL."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -43,24 +41,24 @@ public class IBMFunction_EggStageDuration extends AbstractIBMFunction implements
         "\n\t* Variables:"+
         "\n\t*      t - Double value of temperature (deg C)"+
         "\n\t* Value:"+
-        "\n\t*      D - Double - stage duration (d)"+
+        "\n\t*      YSA - Double - time to yolk-sac absorption (in days)"+
         "\n\t* Calculation:"+
-        "\n\t*     D = 46.597 - 4.079 * T"+
+        "\n\t*     YSA = 14.7662 * exp(-0.235 * T)"+
         "\n\t* "+
         "\n\t*  Citation:"+
-        "\n\t* Hinckley et al., 2019."+
+        "\n\t* Laurel et al. 2008."+
         "\n\t**************************************************************************";
     /** number of settable parameters */
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_EggStageDuration(){
+    public IBMFunction_YSL_YSA(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_EggStageDuration clone = new IBMFunction_EggStageDuration();
+        IBMFunction_YSL_YSA clone = new IBMFunction_YSL_YSA();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());
@@ -75,18 +73,18 @@ public class IBMFunction_EggStageDuration extends AbstractIBMFunction implements
     }
     
     /**
-     * Calculates stage duration for eggs based on input temperature. 
+     * Calculates point-of-no return in days based on input temperature. 
      * 
      * @param o - Double with value for in situ temperature in deg C.
      * 
-     * @return Double - stage duration in days
+     * @return Double - time to yolk-sac absorption (in days)
      * 
      */
     @Override
     public Object calculate(Object o) {
         double t = (Double) o;
-        double D = 46.597 - 4.079 * t;
-        return (Double) D;
+        double YSA = 14.7662 * Math.exp(-0.235 * t);
+        return (Double) YSA;
     }
     
 }

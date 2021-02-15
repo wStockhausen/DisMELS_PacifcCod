@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * IBMFunction_HatchSuccess.java
  */
 package sh.pcod.EggStage;
 
@@ -29,7 +27,7 @@ public class IBMFunction_HatchSuccess extends AbstractIBMFunction implements IBM
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
-        "\n\t* This function provides an implementation of th eLaurel and Rogers (2020)"+
+        "\n\t* This function provides an implementation of the Laurel and Rogers (2020)"+
         "\n\t* temperature-dependent function for hatch success of Pacific cod eggs."+
         "\n\t* "+
         "\n\t* "+

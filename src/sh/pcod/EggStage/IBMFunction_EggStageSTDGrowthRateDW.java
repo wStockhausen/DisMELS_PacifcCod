@@ -1,9 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * IBMFunction_EggStageSTDGrowthRateDW.java
+ * 
+ * 2021-02-04: created function.
  */
-package sh.pcod;
+package sh.pcod.EggStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -29,14 +29,14 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 public class IBMFunction_EggStageSTDGrowthRateDW extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod Epijuv";
+    public static final String DEFAULT_name = "Intrinsic growth rate (g/g/d) in dry weight of embryos in Pacific cod egg stages";
     /** function description */
-    public static final String DEFAULT_descr = "Intrinsic growth rate (g/g/d) in dry weight for Pacific cod Epijuv";
+    public static final String DEFAULT_descr = "Intrinsic growth rate (g/g/d) in dry weight of embryos in Pacific cod egg stages";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
         "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in dry weight for Pacific cod Epijuv."+
+        "\n\t* temperature-dependent function for growth in dry weight  of embryos in Pacific cod egg stages."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -45,7 +45,7 @@ public class IBMFunction_EggStageSTDGrowthRateDW extends AbstractIBMFunction imp
         "\n\t*      t - Double value of temperature (deg C)"+
         "\n\t*      m - Double value of dry weight (micrograms)"+
         "\n\t* Value:"+
-        "\n\t*      r - Double - intrinsic STDG growth rate in dry weight (g/g/d) for egg stages"+
+        "\n\t*      r - Double - intrinsic STDG growth rate in dry weight (g/g/d) for embryos in egg stages"+
         "\n\t* Calculation:"+
         "\n\t*     r = ((0.454 + 1.610*t - 0.069*t*t)*exp(-6.725*m)+3.705)/100; (original in %/d)"+
         "\n\t* "+
@@ -77,11 +77,13 @@ public class IBMFunction_EggStageSTDGrowthRateDW extends AbstractIBMFunction imp
     }
     
     /**
-     * Calculates growth rate in dry weight (g/g/d) based on input temperature. 
+     * Calculates growth rate in dry weight (g/g/d) of embryos in egg stages based on input temperature. 
      * 
-     * @param o - Double[] with values for in situ temperature in deg C and dry weight in micrograms.
+     * @param o - Double[] with values 
+     *     [0] - in situ temperature in deg C 
+     *     [1] - dry weight in micrograms.
      * 
-     * @return Double - growth rate (g/g//d)
+     * @return Double - growth rate (g/g/d)
      * 
      */
     @Override

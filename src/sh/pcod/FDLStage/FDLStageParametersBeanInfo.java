@@ -9,7 +9,7 @@ import java.beans.*;
 
 /**
  *
- * @author william.stockhausen
+ * @author williamstockhausen
  */
 public class FDLStageParametersBeanInfo extends SimpleBeanInfo {
 

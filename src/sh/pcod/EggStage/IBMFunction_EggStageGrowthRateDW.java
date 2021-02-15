@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * IBMFunction_EggStageGrowthRateDW.java
+ * 
+ * 2021-02-04: created function.
  */
 package sh.pcod.EggStage;
 
@@ -28,9 +28,9 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 public class IBMFunction_EggStageGrowthRateDW extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "Growth rate (mm/d) in dry weight for Pacific cod eggs-embryos";
+    public static final String DEFAULT_name = "Growth rate (g/g/d) in dry weight for embryos in Pacific cod eggs";
     /** function description */
-    public static final String DEFAULT_descr = "Growth rate (mm/d) in dry weight for Pacific cod eggs-embryos";
+    public static final String DEFAULT_descr = "Growth rate (g/g/d) in dry weight for embryos in Pacific cod eggs";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+

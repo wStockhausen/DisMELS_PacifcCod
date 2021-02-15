@@ -1,14 +1,16 @@
 /*
  * EggStage.java
- *   devStage = 0
- *
+*
  * Revised 10/11/2018:
  *   Added "attached" as new attribute (necessary with updated DisMELS).
  *   Revised for compatibility with DisMELS (branch DisMELS_2.0SnowCrab).
  * Revised 10/15/2018:
  *   Removed all Parameter function categories except "mortality" because they
  *     were not being used (development is hard-wired, eggs don't move).
- *
+ * 2021-02-04: 1. Removed devStage, Cop, Eup, NCa as attributes. 
+ *                Renamed "diam" as "std_len", since that's what it is.
+ *             2. Converted to IBMFunctions for growth, stage duration.
+ *             3. Added "dry_wgt" as an attribute.
  */
 
 package sh.pcod.EggStage;
@@ -22,7 +24,6 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.roms.model.Interpolator3D;
 import wts.roms.model.LagrangianParticle;
 
 /**
@@ -53,13 +54,6 @@ public class EggStage extends AbstractLHS {
     /* Classes for spawned LHS */
     public static final String[] spawnedLHSClasses = new String[]{};
     
-    /* string identifying environmental field with copepod densities */
-    private static final String Cop = "Cop";
-    /* string identifying environmental field with euphausiid densities */
-    private static final String Eup = "Eup";
-    /* string identifying environmental field with neocalanus densities */
-    private static final String NCa = "NCa";
-    
     //Instance fields
             //  Fields hiding ones from superclass
     /* life stage atrbutes object */
@@ -80,35 +74,43 @@ public class EggStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = true;
-    /** development stage,0=egg,1=ysl,2=fdl,3=FDLpf,4=Epijuv, 5=BenthicJuv */
-    protected double devStage = 0;
-    /** egg diameter (mm) */
-    protected double diam = 0;
+    /** embryo standard length (mm) */
+    protected double std_len = 0;
+    /** embryo dry weight (mg) */
+    protected double dry_wgt = 0;
+    /** growth rate for standard length (mm/d) */
+    protected double grSL = 0;
+    /** growth rate for dry weight (1/d) */
+    protected double grDW = 0;
     /** density of egg [kg/m^3] */
     protected double density;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-    /** in situ copepod density mg/m^3, dry wt */
-    protected double copepod = 0; 
-     /** in situ euphausiid density mg/m^3, dry wt */
-    protected double euphausiid = 0;
-     /** in situ neocalanoid density mg/m^3, dry wt */
-    protected double neocalanus = 0;
+    /** in situ salinity */
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    /**growth in egg diameter mm/d */
-    protected double gD = 0;
-    /**Egg stage duration and progression through stage */
-    protected double stagedur = 0;
-    protected double stageratio = 0;
+    /**egg stage progression */
+    protected double stgProg = 0;
     
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
     
+    //IBM Functions
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
+    /** IBM function selected for growth in embryo standard length */
+    private IBMFunctionInterface fcnGrSL = null; 
+    /** IBM function selected for growth in embryo dry weight */
+    private IBMFunctionInterface fcnGrDW = null; 
+    /** IBM function selected for stage duration */
+    private IBMFunctionInterface fcnStageDur = null; 
+    
+    private int typeMort = 0;//integer indicating mortality function
+    private int typeGrSL = 0;//integer indicating SL growth function
+    private int typeGrDW = 0;//integer indicating DW growth function
+    private int typeStgD = 0;//integer indicating stage duration function
     
     private static final Logger logger = Logger.getLogger(EggStage.class.getName());
     
@@ -125,7 +127,7 @@ public class EggStage extends AbstractLHS {
     }
     
     /**
-     * Creates a new instance of SimplePelagicLHS with the given typeName.
+     * Creates a new instance of EggStage with the given typeName.
      * A new id number is calculated in the superclass and assigned to
      * the new instance's id, parentID, and origID. 
      * 
@@ -147,7 +149,7 @@ public class EggStage extends AbstractLHS {
     }
 
     /**
-     * Creates a new instance of LHS with type name and
+     * Creates a new instance of EggStage with type name and
      * attribute values given by input String array.
      * 
      * Side effects:
@@ -168,7 +170,7 @@ public class EggStage extends AbstractLHS {
     }
 
     /**
-     * Creates a new instance of this LHS with attributes (including type name) 
+     * Creates a new instance of this life stage with attributes (including type name) 
      * corresponding to the input attributes instance.
      * 
      * Side effects:
@@ -378,6 +380,21 @@ public class EggStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_Mortality);
+            fcnGrSL  = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_GrowthSL);
+            fcnGrDW  = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_GrowthDW);
+            fcnStageDur  = params.getSelectedIBMFunctionForCategory(EggStageParameters.FCAT_StageDuration);
+            
+            if (fcnMortality instanceof IBMFunction_HatchSuccess)       typeMort = EggStageParameters.FCN_Mortality_HatchSuccess; else
+            if (fcnMortality instanceof ConstantMortalityRate)          typeMort = EggStageParameters.FCN_Mortality_ConstantMortalityRate; else
+            if (fcnMortality instanceof InversePowerLawMortalityRate)   typeMort = EggStageParameters.FCN_Mortality_InversePowerLawMortalityRate;
+            
+            if (fcnGrSL instanceof IBMFunction_EggStageGrowthRateSL)    typeGrSL = EggStageParameters.FCN_GrSL_EggStage_GrowthRate; else
+            if (fcnGrSL instanceof IBMFunction_EggStageSTDGrowthRateSL) typeGrSL = EggStageParameters.FCN_GrSL_EggStageSTDGrowthRate;
+            
+            if (fcnGrDW instanceof IBMFunction_EggStageGrowthRateDW)    typeGrDW = EggStageParameters.FCN_GrDW_EggStage_GrowthRate; else
+            if (fcnGrDW instanceof IBMFunction_EggStageSTDGrowthRateDW) typeGrDW = EggStageParameters.FCN_GrDW_EggStageSTDGrowthRate;
+            
+            if (fcnStageDur instanceof IBMFunction_EggStageDuration)    typeStgD = EggStageParameters.FCN_StageDur_EggStageDur;
         } else {
             //TODO: throw some error
         }
@@ -432,9 +449,8 @@ public class EggStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         //SH_NEW:
-        if (((ageInStage+dtp)>=minStageDuration) && (stageratio>=1.0)) {
+        if (((ageInStage+dtp)>=minStageDuration) && (stgProg>=1.0)) {
             if ((numTrans>0)||!isSuperIndividual){
-                devStage=1;
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
             }
@@ -502,7 +518,6 @@ public class EggStage extends AbstractLHS {
      * and finally calls updatePosition(), updateEnvVars(), and updateAttributes().
      */
     public void initialize() {
-//        atts.setValue(SimplePelagicLHSAttributes.PARAM_id,id);//TODO: should do this beforehand!!
         updateVariables();//set instance variables to attribute values
         int hType,vType;
         hType=vType=-1;
@@ -570,29 +585,40 @@ public class EggStage extends AbstractLHS {
         }
     }
     
+    /**
+     *
+     * @param dt
+     * @throws ArrayIndexOutOfBoundsException
+     */
     @Override
     public void step(double dt) throws ArrayIndexOutOfBoundsException {
         //Pacific cod eggs are demersal, and assumed to be fixed in place
         //so location does not change
         double[] pos = lp.getIJK();
 //        double T = i3d.interpolateTemperature(pos);//Hinckley version, shouldn't need to recalc
-        double T = temperature;
+        Double T = temperature;
         if(T<=0.0) T=0.01; 
         
-        //SH_NEW-Prey Stuff  
-        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
-       
         time += dt;
+        double dtday = dt/86400;//time step in days
         
-        //SH_NEW:{
-        double dtday = dt/86400;
-        gD = (0.104 + (0.024 * T) - (0.00002 * T * T));  // Hurst et al 2010, embryo eqn
-        diam += (gD * dtday);
-        stagedur = 46.597 - (4.079 * T);
-        //stagedur = 44.4857 - (7.3857*T) + (0.4524*T*T);
-        stageratio += (1.0/stagedur)*dtday;
+        //growth rate (mm/d) and integration for embryo SL
+        if (typeGrSL==EggStageParameters.FCN_GrSL_EggStage_GrowthRate) //T-dep rate for SL
+            grSL = (Double)fcnGrSL.calculate(T); else 
+        if (typeGrSL==EggStageParameters.FCN_GrSL_EggStageSTDGrowthRate) //STDG rate for SL (T only)
+            grSL = (Double)fcnGrSL.calculate(T); 
+        std_len += (grSL * dtday);
+        
+        //growth rate (g/g/d) and integration for embryo SL
+        if (typeGrDW==EggStageParameters.FCN_GrDW_EggStage_GrowthRate) //T-dep rate for DW
+            grDW = (Double)fcnGrDW.calculate(T); else 
+        if (typeGrSL==EggStageParameters.FCN_GrSL_EggStageSTDGrowthRate) //STDG rate for DW
+            grDW = (Double)fcnGrDW.calculate((new Double[]{T,dry_wgt})); 
+        dry_wgt *= Math.exp(grDW * dtday);//mg
+        
+        //stage duration (only one possible function currently)
+        double stgD = (Double) fcnStageDur.calculate(T);
+        stgProg += dtday/stgD;
         
         updateAge(dt);
         updateNum(dt);
@@ -627,19 +653,21 @@ public class EggStage extends AbstractLHS {
      * @param dt - time step in seconds
      */
     private void updateNum(double dt) {
-        if (fcnMortality instanceof IBMFunction_HatchSuccess){
-            if ((stageratio>=1.0)||(maxStageDuration<=ageInStage)){
+        if (typeMort==EggStageParameters.FCN_Mortality_HatchSuccess){ 
+            //fcnMortality instanceof IBMFunction_HatchSuccess
+            if ((stgProg>=1.0)||(maxStageDuration<=ageInStage)){
                 double h = (Double)fcnMortality.calculate(temperature);//hatch success
                 number *= h;
-                return;
             }
         } else {
             double mortalityRate = 0.0D;//in units of [days]^-1
-            if (fcnMortality instanceof ConstantMortalityRate){
+            if (typeMort==EggStageParameters.FCN_Mortality_ConstantMortalityRate){  
+                //fcnMortality instanceof ConstantMortalityRate
                 mortalityRate = (Double)fcnMortality.calculate(null);
             } else 
-            if (fcnMortality instanceof InversePowerLawMortalityRate){
-                mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+            if (typeMort==EggStageParameters.FCN_Mortality_InversePowerLawMortalityRate){  
+                //fcnMortality instanceof InversePowerLawMortalityRate
+                mortalityRate = (Double)fcnMortality.calculate(std_len);//using embryo SL as covariate for mortality
             } 
             double totRate = mortalityRate;
             if ((ageInStage>=minStageDuration)) {
@@ -654,10 +682,10 @@ public class EggStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        bathym     = i3d.interpolateBathymetricDepth(pos);
+        bathym     =  i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-        lat        = i3d.interpolateLat(pos);
-        lon        = i3d.interpolateLon(pos);
+        lat        =  i3d.interpolateLat(pos);
+        lon        =  i3d.interpolateLon(pos);
         gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
         updateTrack();
     }
@@ -666,7 +694,8 @@ public class EggStage extends AbstractLHS {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
         //interpolate in situ density field
-        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
+        if (i3d.getPhysicalEnvironment().getField("rho")!=null) 
+            rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
     }
 
@@ -748,15 +777,15 @@ public class EggStage extends AbstractLHS {
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(EggStageAttributes.PROP_attached,attached);
+        atts.setValue(EggStageAttributes.PROP_stgProg,stgProg);
         atts.setValue(EggStageAttributes.PROP_density,density);
-        atts.setValue(EggStageAttributes.PROP_devStage,devStage);
-        atts.setValue(EggStageAttributes.PROP_diameter,diam);
+        atts.setValue(EggStageAttributes.PROP_SL,std_len);
+        atts.setValue(EggStageAttributes.PROP_DW,dry_wgt);
+        atts.setValue(EggStageAttributes.PROP_grSL,grSL);
+        atts.setValue(EggStageAttributes.PROP_grDW,grDW);
         atts.setValue(EggStageAttributes.PROP_rho,rho);
         atts.setValue(EggStageAttributes.PROP_salinity,salinity);
         atts.setValue(EggStageAttributes.PROP_temperature,temperature);
-        atts.setValue(EggStageAttributes.PROP_copepod,copepod);
-        atts.setValue(EggStageAttributes.PROP_euphausiid,euphausiid);
-        atts.setValue(EggStageAttributes.PROP_neocalanus,neocalanus);
   
     }
 
@@ -767,15 +796,15 @@ public class EggStage extends AbstractLHS {
     protected void updateVariables() {
         super.updateVariables();
         attached    = atts.getValue(EggStageAttributes.PROP_attached,attached);
+        stgProg     = atts.getValue(EggStageAttributes.PROP_stgProg,stgProg);
         density     = atts.getValue(EggStageAttributes.PROP_density,density);
-        devStage    = atts.getValue(EggStageAttributes.PROP_devStage,devStage);
-        diam        = atts.getValue(EggStageAttributes.PROP_diameter,diam);
+        std_len     = atts.getValue(EggStageAttributes.PROP_SL,std_len);
+        dry_wgt     = atts.getValue(EggStageAttributes.PROP_DW,dry_wgt);
+        grSL        = atts.getValue(EggStageAttributes.PROP_grSL,grSL);
+        grDW        = atts.getValue(EggStageAttributes.PROP_grDW,grDW);
         rho         = atts.getValue(EggStageAttributes.PROP_rho,rho);
         salinity    = atts.getValue(EggStageAttributes.PROP_salinity,salinity);
         temperature = atts.getValue(EggStageAttributes.PROP_temperature,temperature);
-        copepod     = atts.getValue(EggStageAttributes.PROP_copepod,copepod);
-        euphausiid  = atts.getValue(EggStageAttributes.PROP_euphausiid,euphausiid);
-        neocalanus  = atts.getValue(EggStageAttributes.PROP_neocalanus,neocalanus);
     }
 
 }

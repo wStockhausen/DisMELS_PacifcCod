@@ -7,6 +7,11 @@
  *           3. Added "attached" as new attribute (necessary with updated DisMELS).
  *           4. Removed "diam" since it's replaced by "length"
  * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
+ * 20210209: 1. Converted to using IBMFunctions, added STDG functions, renamed 'length' to std_len.
+ *           2. Added dry_wgt, converted a number of other variables to attributes
+ *           3. Changed criteria for PNR (now similar to YSA).
+ * 20210209: 1. Made changes to setInfoFromIndividual, setInfoFromSuperIndividual, setAttributes, 
+ *              and clone methods to deal with differences in attributes coming from EggStage instances.
  *
  */
 
@@ -18,8 +23,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.openide.util.lookup.ServiceProvider;
 import sh.pcod.EggStage.EggStageAttributes;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateDW;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateSL;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
+import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
+import wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.CalendarIF;
@@ -28,12 +37,16 @@ import wts.roms.model.Interpolator3D;
 import wts.roms.model.LagrangianParticle;
 
 /**
- *
+ * Life stage class for Pacific cod yolk-sac larvae (YSL).
+ * 
  * @author William Stockhausen
  * @author Sarah Hinckley
  */
 @ServiceProvider(service=LifeStageInterface.class)
 public class YSLStage extends AbstractLHS {
+    
+    /** flag to use Sarah's approach to first feeding */
+    public static boolean useFirstFeedingSH = true;//TODO: should be a parameter?
     
         //Static fields    
             //  Static fields new to this class
@@ -83,42 +96,68 @@ public class YSLStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
+    /** standard length (mm) */
+    protected double std_len = 0;
+    /** dry weight (mg) */
+    protected double dry_wgt = 0;
+    /** growth rate for standard length (mm/d) */
+    protected double grSL = 0;
+    /** growth rate for dry weight (1/d) */
+    protected double grDW = 0;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-   /** in situ copepod density mg/m^3, dry wt)) */
-    protected double copepod = 0;    /** in situ small copepods */
-     /** in situ euphausiid density mg/m^3, dry wt)) */
-    protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density mg/m^3, dry wt)) */
-    protected double neocalanus = 0;    /** in situ large copepods */      
     /** in situ salinity */
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    /**growth in Length mm/d */
-    protected double gL = 0;
-    /**YSL Length variable (mm) */
-    protected double length = 0;
-    /**YSL yolksac absorption duration and progression through stage*/
-    protected double maxstagedur;
-    protected double maxstageratio;
-
-    protected double ysadur; //sec to yolk sac absorption
-    protected double ysaratio; //percent ysadur accomplished
-    protected double ageysa; 
-    protected double prfeed;
-    protected boolean fedyet=false;
-
+   /** in situ copepod density (mg/m^3, dry wt) */
+    protected double copepods = 0;
+     /** in situ euphausiid density (mg/m^3, dry wt) */
+    protected double euphausiids = 0;
+     /** in situ neocalanoid density (mg/m^3, dry wt) */
+    protected double neocalanus = 0;
+    /** integrated criterion for yolk-sac absorption */
+    protected double progYSA = 0;
+    /** integrated criterion for point-of-no return */
+    protected double progPNR = 0;
+    
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
+    protected double durPNR; //time (days) to point-of-no return based on current temperature
+    protected double durYSA; //time (days) to yolk sac absorption based on current temperature
+    protected double ageYSA; //age at which yolk-sac absorption occurred
+    
+    //initialized values
+    protected final double rndFeed = Math.random(); //random value of cumulative probability at which feeding occurs
+    protected double  prFeed       = 0.0;   //cumulative probability with time of first feeding (Sarah's approach)
+    protected double  prNotFed     = 1.0;   //cumulative probability of NOT having fed
+    protected double  indivCopWgt  = 1.0e-6;//typical weight for individual small copepod (kg)
+    protected double  fCumHazFcn   = 0.0;   //cumulative hazard function for first feeding
+    protected boolean hasFed       = false; //feeding flag
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
+    /** IBM function selected for growth in SL */
+    private IBMFunctionInterface fcnGrSL = null; 
+    /** IBM function selected for growth in DW */
+    private IBMFunctionInterface fcnGrDW = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
     /** IBM function selected for vertical velocity */
     private IBMFunctionInterface fcnVV = null; 
+    /** IBM function selected for time to point-of-no-return */
+    private IBMFunctionInterface fcnPNR = null; 
+    /** IBM function selected for time to yolk-sac absorption */
+    private IBMFunctionInterface fcnYSA = null; 
+    
+    private int typeMort = 0;//integer indicating mortality function
+    private int typeGrSL = 0;//integer indicating SL growth function
+    private int typeGrDW = 0;//integer indicating DW growth function
+    private int typeVM   = 0;//integer indicating vertical movement function
+    private int typeVV   = 0;//integer indicating vertical velocity function
+    private int typePNR  = 0;//integer indicating PNR function
+    private int typeYSA  = 0;//integer indicating YSA function
     
     private static final Logger logger = Logger.getLogger(YSLStage.class.getName());
     
@@ -223,6 +262,7 @@ public class YSLStage extends AbstractLHS {
 
     /**
      *  Returns the associated attributes.  
+     * @return associated YSLStageAttributes instance
      */
     @Override
     public YSLStageAttributes getAttributes() {
@@ -271,12 +311,15 @@ public class YSLStage extends AbstractLHS {
      * Sets the attributes for the instance by copying values from the input.
      * This does NOT change the typeName of the LHS instance (or the associated 
      * LHSAttributes instance) on which the method is called.
-     * Note that ALL attributes are copied, so id, parentID, and origID are copied
-     * as well. 
+     * 
+     * Note that id, parentID, and origID are copied, as are other attributes equivalent
+     * in both life stages. Attributes in this stage that are not present in newAtts
+     * are added appropriately.
+     * 
      *  Side effects:
      *      updateVariables() is called to update instance variables.
      *      Instance field "id" is also updated.
-     * @param newAtts - should be instance of SimplePelagicLHSAttributes
+     * @param newAtts - should be instance of YSLStageAttributes or EggStageAttributes
      */
     @Override
     public void setAttributes(LifeStageAttributesInterface newAtts) {
@@ -286,33 +329,56 @@ public class YSLStage extends AbstractLHS {
         } else if (newAtts instanceof EggStageAttributes) {
             EggStageAttributes oldAtts = (EggStageAttributes) newAtts;
             for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
-           //SH_NEW
-            // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
-            atts.setValue(YSLStageAttributes.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, length));
+            //need to map attributes with different names correctly
+            atts.setValue(YSLStageAttributes.PROP_SL,oldAtts.getValue(EggStageAttributes.PROP_SL, std_len));
+            atts.setValue(YSLStageAttributes.PROP_DW,oldAtts.getValue(EggStageAttributes.PROP_DW, dry_wgt));
+            atts.setValue(YSLStageAttributes.PROP_grSL,oldAtts.getValue(EggStageAttributes.PROP_grSL, grSL));
+            atts.setValue(YSLStageAttributes.PROP_grDW,oldAtts.getValue(EggStageAttributes.PROP_grDW, grDW));
+            //need to set attributes NOT included in EggStageAttributes
+            //set prey concentrations based on current location
+            double[] pos = lp.getIJK();
+            copepods    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
+            euphausiids = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
+            neocalanus  = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
+            atts.setValue(YSLStageAttributes.PROP_copepod,copepods);
+            atts.setValue(YSLStageAttributes.PROP_euphausiid,euphausiids);
+            atts.setValue(YSLStageAttributes.PROP_neocalanus,neocalanus);
+            //set the following attributes to initial values 
+            atts.setValue(YSLStageAttributes.PROP_progYSA,progYSA);
+            atts.setValue(YSLStageAttributes.PROP_progPNR,progPNR);
+            atts.setValue(YSLStageAttributes.PROP_prNotFed,prNotFed);            
         } else {
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
         id = atts.getValue(YSLStageAttributes.PROP_id, id);
         //SH_NEW
-        updateVariables();
+        //updateVariables(); //TODO: check if this is necessary--it's also called in setInfoFromIndividual
     }
     
     /**
      *  Sets the associated attributes object. Use this after creating an LHS instance
      * as an "output" from another LHS that is functioning as an ordinary individual.
+     * @param oldLHS
      */
     @Override
     public void setInfoFromIndividual(LifeStageInterface oldLHS){
         /** 
          * Since this is a single individual making a transition, we need to:
-         *  1) copy the attributes from the old LHS (id's should remain as for old LHS)
-         *  2) set age in stage = 0
-         *  3) set active and alive to true
-         *  5) copy the Lagrangian Particle from the old LHS
-         *  6) start a new track from the current position for the oldLHS
+         *  1) copy the Lagrangian Particle from the old LHS
+         *  2) start a new track from the current position for the oldLHS
+         *  3) copy the attributes from the old LHS (id's should remain as for old LHS)
+         *  4) set values for attributes NOT included in oldLHS
+         *  5) set age in stage = 0
+         *  6) set active and alive to true
          *  7) update local variables
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         LifeStageAttributesInterface oldAtts = oldLHS.getAttributes();            
         setAttributes(oldAtts);
         
@@ -320,18 +386,9 @@ public class YSLStage extends AbstractLHS {
         atts.setValue(YSLStageAttributes.PROP_ageInStage, 0.0);//reset age in stage
         atts.setValue(YSLStageAttributes.PROP_active,true);    //set active to true
         atts.setValue(YSLStageAttributes.PROP_alive,true);     //set alive to true
-        //SH_NEW
-        //atts.setValue(atts.PROP_length,oldAtts.getValue(oldAtts.PROP_diameter);     //set alive to true
-        //Below from SimpleBenthicJuvenilesLHS.java,L 307 
-        //atts.setValue(atts.PROP_parentID,oldAtts.getValue(oldAtts.PROP_id));//copy old id to parentID
 
         id = atts.getID(); //reset id for current LHS to one from old LHS
 
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
@@ -339,23 +396,31 @@ public class YSLStage extends AbstractLHS {
     /**
      *  Sets the associated attributes object. Use this after creating an LHS instance
      * as an "output" from another LHS that is functioning as a super individual.
+     * @param oldLHS
+     * @param numTrans
      */
     @Override
     public void setInfoFromSuperIndividual(LifeStageInterface oldLHS, double numTrans) {
         /** 
          * Since the old LHS instance is a super individual, only a part 
          * (numTrans) of it transitioned to the current LHS. Thus, we need to:
-         *          1) copy most attribute values from old stage
-         *          2) make sure id for this LHS is retained, not changed
-         *          3) assign old LHS id to this LHS as parentID
-         *          4) copy old LHS origID to this LHS origID
-         *          5) set number in this LHS to numTrans
-         *          6) reset age in stage to 0
-         *          7) set active and alive to true
-         *          9) copy the Lagrangian Particle from the old LHS
-         *         10) start a new track from the current position for the oldLHS
-         *         11) update local variables to match attributes
+         *          1) copy the Lagrangian Particle from the old LHS
+         *          2) start a new track from the current position for the oldLHS
+         *          3) copy some attribute values from old stage and determine values for new attributes
+         *          4) make sure id for this LHS is retained, not changed
+         *          5) assign old LHS id to this LHS as parentID
+         *          6) copy old LHS origID to this LHS origID
+         *          7) set number in this LHS to numTrans
+         *          8) reset age in stage to 0
+         *          9) set active and alive to true
+         *         10) update local variables to match attributes
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         //copy some variables that should not change
         long idc = id;
         
@@ -373,17 +438,13 @@ public class YSLStage extends AbstractLHS {
         atts.setValue(YSLStageAttributes.PROP_active,true);     //set active to true
         atts.setValue(YSLStageAttributes.PROP_alive,true);      //set alive to true
             
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
 
     /**
      *  Returns the associated parameters.  
+     * @return the associated YSLStageParameters instance
      */
     @Override
     public YSLStageParameters getParameters() {
@@ -401,8 +462,39 @@ public class YSLStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_Mortality);
-            fcnVM = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_VerticalMovement);
-            fcnVV = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_VerticalVelocity);
+            fcnGrSL = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_GrowthSL);
+            fcnGrDW = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_GrowthDW);
+            fcnVM   = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_VerticalMovement);
+            fcnVV   = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_VerticalVelocity);
+            fcnPNR  = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_PNR);
+            fcnYSA  = params.getSelectedIBMFunctionForCategory(YSLStageParameters.FCAT_YSA);
+            
+            if (fcnMortality instanceof ConstantMortalityRate)
+                typeMort = YSLStageParameters.FCN_Mortality_ConstantMortalityRate;
+            else if (fcnMortality instanceof InversePowerLawMortalityRate)
+                typeMort = YSLStageParameters.FCN_Mortality_InversePowerLawMortalityRate;
+            
+            if (fcnGrSL instanceof IBMFunction_NonEggStageSTDGrowthRateSL) 
+                typeGrSL = YSLStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate;
+            else if (fcnGrSL instanceof IBMFunction_YSL_GrowthRateSL)    
+                typeGrSL = YSLStageParameters.FCN_GrSL_YSL_GrowthRate;
+            
+            if (fcnGrDW instanceof IBMFunction_NonEggStageSTDGrowthRateDW) 
+                typeGrDW = YSLStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate;
+            else if (fcnGrDW instanceof IBMFunction_YSL_GrowthRateDW)    
+                typeGrDW = YSLStageParameters.FCN_GrDW_YSL_GrowthRate;
+            
+            if (fcnVM instanceof DielVerticalMigration_FixedDepthRanges)   
+                typeVM = YSLStageParameters.FCN_VM_DVM_FixedDepthRanges;
+            
+            if (fcnVV instanceof ConstantMovementRateFunction) 
+                typeVV = YSLStageParameters.FCN_VV_YSL_Constant;
+            
+            if (fcnPNR instanceof IBMFunction_YSL_PNR) 
+                typePNR = YSLStageParameters.FCN_PNR_YSL;
+            
+            if (fcnYSA instanceof IBMFunction_YSL_YSA) 
+                typeYSA = YSLStageParameters.FCN_YSA_YSL;
         } else {
             //TODO: throw some error
         }
@@ -435,6 +527,7 @@ public class YSLStage extends AbstractLHS {
         try {
             clone = (YSLStage) super.clone();
             clone.setAttributes(atts);//this clones atts
+            clone.updateVariables();  //this sets the variables in the clone to the attribute values
             clone.setParameters(params);//this clones params
             clone.lp      = (LagrangianParticle) lp.clone();
             clone.track   = (ArrayList<Coordinate>) track.clone();
@@ -457,7 +550,7 @@ public class YSLStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         //SH_NEW:
-        if (fedyet==true){
+        if (hasFed==true){
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -526,7 +619,6 @@ public class YSLStage extends AbstractLHS {
      * and finally calls updatePosition(), updateEnvVars(), and updateAttributes().
      */
     public void initialize() {
-//        atts.setValue(SimplePelagicLHSAttributes.PARAM_id,id);//TODO: should do this beforehand!!
         updateVariables();//set instance variables to attribute values
         int hType,vType;
         hType=vType=-1;
@@ -592,19 +684,23 @@ public class YSLStage extends AbstractLHS {
         double T0 = i3d.interpolateTemperature(pos);
         
       //SH-Prey Stuff  
-        copepod    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
-        euphausiid = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
-        neocalanus = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
+        copepods    = i3d.interpolateValue(pos,Cop,Interpolator3D.INTERP_VAL);
+        euphausiids = i3d.interpolateValue(pos,Eup,Interpolator3D.INTERP_VAL);
+        neocalanus  = i3d.interpolateValue(pos,NCa,Interpolator3D.INTERP_VAL);
                
-        double[] uvw = calcUVW(pos,dt);//this also sets "attached" and may change pos[2] to 0
+        double[] res = calcW(pos,dt);//calc w and attached indicator
+        double w     = Math.signum(dt)*res[0];
+        attached     = res[1]<0;
+        if (attached) pos[2] = 0;//set individual on bottom
+        double[] uv  = calcUV(pos,dt);//calculate orizontal movement components
         if (attached){
             lp.setIJK(pos[0], pos[1], pos[2]);
         } else {
             //}:WTS_NEW 2012-07-26
             //do lagrangian particle tracking
-            lp.setU(uvw[0],lp.getN());
-            lp.setV(uvw[1],lp.getN());
-            lp.setW(uvw[2],lp.getN());
+            lp.setU(uv[0],lp.getN());
+            lp.setV(uv[1],lp.getN());
+            lp.setW(w,    lp.getN());
             //now do predictor step
             lp.doPredictorStep();
             //assume same daytime status, but recalc depth and revise W 
@@ -612,75 +708,87 @@ public class YSLStage extends AbstractLHS {
             depth = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
             if (debug) logger.info("Depth after predictor step = "+depth);
             //w = calcW(dt,lp.getNP1())+r; //set swimming rate for predicted position
-            lp.setU(uvw[0],lp.getNP1());
-            lp.setV(uvw[1],lp.getNP1());
-            lp.setW(uvw[2],lp.getNP1());
+            lp.setU(uv[0],lp.getNP1());
+            lp.setV(uv[1],lp.getNP1());
+            lp.setW(w,    lp.getNP1());
             //now do corrector step
             lp.doCorrectorStep();
             pos = lp.getIJK();
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
+        
         time += dt;
-        //need to update devStage, length, number
+        double dtday = dt/86400;//bio model timestep in days
+        
+        //get effective temperature as average temp at new and old locations
         double T1 = i3d.interpolateTemperature(pos);
         double T = 0.5 * (T0 + T1);
         if(T<=0.0) T=0.01; 
 
-        //SH_NEW:{
-        double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
-        //PNR.  Set = 15 for now (Hinrichsen et al 2005).
-        //Change to days to 100% mortality when Ben
-        //gives me formula as a function of temperature ???
-        //double PNR=13;                         //days
+        //Days to 100% mortality        
+        durPNR  = (Double) fcnPNR.calculate(T);//only 1 alternative function currently defined
+        progPNR += dtday/durPNR;//integrated criterion for point-of-no return (progPNR=1)
+        
+        if (progPNR>=1.0){
+            alive=false;//larva passes PNR without feeding and dies of starvation
+            active=false;
+        } else {
+            //Days to YSA (when it is ready to feed)
+            durYSA  = (Double) fcnYSA.calculate(T);//only 1 alternative function currently defined        
+            if (progYSA<1.0) progYSA += dtday/durYSA;//integrated criterion for yolk-sac absorption (progYSA=1)
+            if ((ageYSA<0)&&(progYSA>=1.0))
+                ageYSA = ageInStage; //Age at which feeding is possible
 
-        //Here is the days to 50% mortality relationship to test
-        
-        //double PNR = 7.506 + 20.7374*Math.exp(-0.3424*T);
-        // = 1;
-        
-        //Days to 100% mortality
-        
-        double PNR = 34.67*Math.exp(-0.126*T);
-        
-        //Days to YSA (when it is ready to feed)
-        ysadur = 14.7662*Math.exp(-0.235*T);        //sec. T changes once per env time step here        
-        ysaratio = ysaratio + (1.0/ysadur)*dtday;            
-        if(ysaratio<=1.0)
-           ageysa = ageInStage; ////Age at which feeding is possible 
-           
-       //CASES:
-       // Case 1. Before ysa, therefore too young to feed
-          if(ysaratio < 1.0){
-            //mortality:
-            //growth:
-             //TEMP
-             gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
-             length = length + (gL*dtday);
-           }
-     // Case 2.  After ysa, ready to feed
-          else if((ysaratio>=1.0)&&(ageInStage<PNR)){
-            //Probability of feeding at time step
-            prfeed = prfeed + (1.0/(PNR-ysadur))*dtday;
-            double b = Math.random();
-            //density = b;
-            if(b>prfeed){        //NO FEEDING
-                //Shrinkage?
-                //mortality?
-                //growth:
-               gL = (0.179 + (0.015 * T) - (0.00001 * T * T));//Hurst et al 2010, preflexion eq, mm per day
-               length = length + (gL*dtday);
+            //growth is same for feeding via ysa or active feeding 
+            if (typeGrSL==YSLStageParameters.FCN_GrSL_YSL_GrowthRate)
+                grSL = (Double) fcnGrSL.calculate(T);
+            else if (typeGrSL==YSLStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate)
+                grSL = (Double) fcnGrSL.calculate(new Double[]{T,std_len});
+
+            if (typeGrDW==YSLStageParameters.FCN_GrDW_YSL_GrowthRate)
+                grDW = (Double) fcnGrDW.calculate(T);
+            else if (typeGrDW==YSLStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate)
+                grDW = (Double) fcnGrDW.calculate(new Double[]{T,dry_wgt});
+
+            if (progYSA<1.0){
+                //yolk-sac absorption is incomplete
+                std_len += grSL*dtday;            //mm
+                dry_wgt *= Math.exp(grDW * dtday);//mg
+            } else {
+                //yolk sac absorption is complete
+                //calculate whether or not first feeding occurs                
+                if (useFirstFeedingSH){
+                    //SH approach
+                    //This approach assumes prFeed (the Lifetime Distribution Function) 
+                    //increases linearly from 0 to 1 as time/age increases from YSA to PNR,
+                    //but this occurs necessarily only in the case of constant temperature
+                    //(in which case durPNR-durYSA is a constant).
+                    prFeed  += dtday/(durPNR-durYSA);
+                    prNotFed = 1.0-prFeed;
+                    double b = Math.random();
+                    logger.info("Check on first feeding for id "+id+": "+rndFeed+" <= "+prFeed+"?");
+                    if (rndFeed<=prFeed) hasFed = true;//feeding occurs, will transition to FDL stage
+                    //growth occurs regardless of feeding (seems unrealistic)
+                    std_len += grSL*dtday;
+                    dry_wgt *= Math.exp(grDW * dtday);
+                } else {
+                    //WTS approach based on survival/failure analysis
+                    //hazard function for first feeding is based on prey encounter rate (search volume x abundance density)
+                    double svr  = Math.PI*(std_len*std_len*(1.0e-6))*Math.abs(w);//search volume rate (m^3/s)
+                    double fHF  = svr*(copepods/indivCopWgt);//instantaneous feeding hazard rate (1/s)
+                    fCumHazFcn += fHF*dt;                   //cumulative hazard function for first feeding (note: dt, not dtday)
+                    prNotFed = Math.exp(-fCumHazFcn);
+                    if (rndFeed>prNotFed) {
+                        //feeding occurs
+                        hasFed = true;//will transition to FDL stage
+                        std_len += grSL*dtday;
+                        dry_wgt *= Math.exp(grDW * dtday);
+                    } else {
+                        //growth does not occur if ysa is completed but feeding has not begun
+                    }
+                }
             }
-            else if(b<=prfeed) {               // Case 3. b <= prfeed, FEEDING OCCURS
-               //mortality
-               //growth:
-               gL = (0.179 + (0.015 * T) - (0.00001 * T * T));//Hurst et al 2010, preflexion eq, mm per day
-               length = length + (gL*dtday);
-               //devStage = 2;     // Becomes a feeding larva - How to go directly to fdl stage for this larva
-               fedyet = true;  
-            }
-           }
-     // Case 4.  Larva passes PNR without feeding and dies of starvation       
-        else if (ageInStage>=PNR) alive=false;
+        }
           
         updateNum(dt);
         updateAge(dt);
@@ -697,21 +805,25 @@ public class YSLStage extends AbstractLHS {
         updateAttributes(); //update the attributes object w/ nmodified values
     }
     
-    //WTS_NEW 2012-07-26:{
-    //deleted methods calcW(dt) and calcUV(dt)
-    
     /**
-     * Function to calculate movement rates.
+     * Function to calculate vertical movement rate (m/s).
      * 
+     * @param pos - position vector
      * @param dt - time step
-     * @return 
+     * 
+     * @return double[] with
+     *  [0] - w, individual active vertical movement velocity (m/s)
+     *  [1] - flag indicating whether individual is attached to bottom(< 0) or not (>0)
      */
-    public double[] calcUVW(double[] pos, double dt) {
+    private double[] calcW(double[] pos, double dt){
         //compute vertical velocity
+        double[] res = null;
         double w = 0;
-        if (fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges) {
+        if (typeVM==YSLStageParameters.FCN_VM_DVM_FixedDepthRanges) {
+            //fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges
             //calculate the vertical movement rate
-            if (fcnVV instanceof wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction) {
+            if (typeVV==YSLStageParameters.FCN_VV_YSL_Constant) {
+                //fcnVV instanceof wts.models.DisMELS.IBMFunctions.SwimmingBehavior.ConstantMovementRateFunction
                 /**
                 * @param vars - double[]{dt}.
                 * @return     - movement rate as a Double 
@@ -755,12 +867,19 @@ public class YSLStage extends AbstractLHS {
             *              attached - flag indicating whether individual is attached to bottom(< 0) or not (>0)
             */
             double td = i3d.interpolateBathymetricDepth(lp.getIJK());
-            double[] res = (double[]) fcnVM.calculate(new double[]{dt,depth,td,w,90.833-ss[4]});
-            w = res[0];
-            attached = res[1]<0;
-            if (attached) pos[2] = 0;//set individual on bottom
+            res = (double[]) fcnVM.calculate(new double[]{dt,depth,td,w,90.833-ss[4]});
         }
-        
+        return res;
+    }
+    
+    /**
+     * Function to calculate horizontal movement rates.
+     * 
+     * @param pos - position vector
+     * @param dt - time step
+     * @return 
+     */
+    public double[] calcUV(double[] pos, double dt) {
         //calculate horizontal movement
         double[] uv = {0.0,0.0};
         if (!attached){
@@ -771,9 +890,8 @@ public class YSLStage extends AbstractLHS {
                 if (debug) System.out.print("uv: "+r+"; "+uv[0]+", "+uv[1]+"\n");
             }
         }
-        
         //return the result
-        return new double[]{Math.signum(dt)*uv[0],Math.signum(dt)*uv[1],Math.signum(dt)*w};
+        return new double[]{Math.signum(dt)*uv[0],Math.signum(dt)*uv[1]};
     }
     //WTS_NEW 2012-07-26:{
 
@@ -797,12 +915,13 @@ public class YSLStage extends AbstractLHS {
     private void updateNum(double dt) {
         //{WTS_NEW 2012-07-26:
         double mortalityRate = 0.0D;//in unis of [days]^-1
-        if (fcnMortality instanceof ConstantMortalityRate){
+        if (typeMort==YSLStageParameters.FCN_Mortality_ConstantMortalityRate){
+            //fcnMortality instanceof ConstantMortalityRate
             mortalityRate = (Double)fcnMortality.calculate(null);
         } else 
-        if (fcnMortality instanceof InversePowerLawMortalityRate){
-        //SH_NEW    
-        //    mortalityRate = (Double)fcnMortality.calculate(length);//using length as covariate for mortality
+        if (typeMort==YSLStageParameters.FCN_Mortality_InversePowerLawMortalityRate){
+            //fcnMortality instanceof InversePowerLawMortalityRate
+            mortalityRate = (Double)fcnMortality.calculate(std_len);//using std_len as covariate for mortality
         }
         double totRate = mortalityRate;
         if ((ageInStage>=minStageDuration)) {
@@ -817,10 +936,10 @@ public class YSLStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        bathym     = i3d.interpolateBathymetricDepth(pos);
+        bathym     =  i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-        lat        = i3d.interpolateLat(pos);
-        lon        = i3d.interpolateLon(pos);
+        lat        =  i3d.interpolateLat(pos);
+        lon        =  i3d.interpolateLon(pos);
         gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
         updateTrack();
     }
@@ -828,7 +947,8 @@ public class YSLStage extends AbstractLHS {
     private void interpolateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
-        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
+        if (i3d.getPhysicalEnvironment().getField("rho")!=null) 
+            rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
     }
 
@@ -910,14 +1030,19 @@ public class YSLStage extends AbstractLHS {
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(YSLStageAttributes.PROP_attached,attached);
-        atts.setValue(YSLStageAttributes.PROP_length,length);
-        atts.setValue(YSLStageAttributes.PROP_rho,rho);
-        atts.setValue(YSLStageAttributes.PROP_salinity,salinity);
+        atts.setValue(YSLStageAttributes.PROP_SL,std_len);
+        atts.setValue(YSLStageAttributes.PROP_DW,dry_wgt);
+        atts.setValue(YSLStageAttributes.PROP_grSL,grSL);
+        atts.setValue(YSLStageAttributes.PROP_grDW,grDW);
         atts.setValue(YSLStageAttributes.PROP_temperature,temperature);
-        atts.setValue(YSLStageAttributes.PROP_copepod,copepod);
-        atts.setValue(YSLStageAttributes.PROP_euphausiid,euphausiid);
+        atts.setValue(YSLStageAttributes.PROP_salinity,salinity);
+        atts.setValue(YSLStageAttributes.PROP_rho,rho);
+        atts.setValue(YSLStageAttributes.PROP_copepod,copepods);
+        atts.setValue(YSLStageAttributes.PROP_euphausiid,euphausiids);
         atts.setValue(YSLStageAttributes.PROP_neocalanus,neocalanus);
-  
+        atts.setValue(YSLStageAttributes.PROP_progYSA,progYSA);
+        atts.setValue(YSLStageAttributes.PROP_progPNR,progPNR);
+        atts.setValue(YSLStageAttributes.PROP_prNotFed,prNotFed);
     }
 
     /**
@@ -927,13 +1052,19 @@ public class YSLStage extends AbstractLHS {
     protected void updateVariables() {
         super.updateVariables();
         attached    = atts.getValue(YSLStageAttributes.PROP_attached,attached);
-        length      = atts.getValue(YSLStageAttributes.PROP_length,length); 
-        rho         = atts.getValue(YSLStageAttributes.PROP_rho,rho);
-        salinity    = atts.getValue(YSLStageAttributes.PROP_salinity,salinity);
+        std_len     = atts.getValue(YSLStageAttributes.PROP_SL,std_len); 
+        dry_wgt     = atts.getValue(YSLStageAttributes.PROP_DW,dry_wgt); 
+        grSL        = atts.getValue(YSLStageAttributes.PROP_grSL,grSL); 
+        grDW        = atts.getValue(YSLStageAttributes.PROP_grDW,grDW); 
         temperature = atts.getValue(YSLStageAttributes.PROP_temperature,temperature);
-        copepod     = atts.getValue(YSLStageAttributes.PROP_copepod,copepod);
-        euphausiid  = atts.getValue(YSLStageAttributes.PROP_euphausiid,euphausiid);
+        salinity    = atts.getValue(YSLStageAttributes.PROP_salinity,salinity);
+        rho         = atts.getValue(YSLStageAttributes.PROP_rho,rho);
+        copepods    = atts.getValue(YSLStageAttributes.PROP_copepod,copepods);
+        euphausiids = atts.getValue(YSLStageAttributes.PROP_euphausiid,euphausiids);
         neocalanus  = atts.getValue(YSLStageAttributes.PROP_neocalanus,neocalanus);
+        progYSA     = atts.getValue(YSLStageAttributes.PROP_progYSA,progYSA); 
+        progPNR     = atts.getValue(YSLStageAttributes.PROP_progPNR,progPNR); 
+        prNotFed    = atts.getValue(YSLStageAttributes.PROP_prNotFed,prNotFed); 
     }
 
 }

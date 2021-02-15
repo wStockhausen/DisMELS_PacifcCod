@@ -3,6 +3,7 @@
  *
  * Updated 10/11/2018:
  *   Added "attached" as attribute due to changes in DisMELS framework
+ * 20210208: 1. extends AbstractLarvalAttributes.
  *
  */
 
@@ -10,14 +11,13 @@ package sh.pcod.FDLStage;
 
 import java.util.logging.Logger;
 import org.openide.util.lookup.ServiceProvider;
-import sh.pcod.AbstractNonEggStageAttributes;
+import sh.pcod.AbstractLarvalAttributes;
 
 /**
  * DisMELS class representing attributes for Pacific cod preflexion feeding larvae.
- * @TODO: remove PROP_density and PROP_devStage(?) and associated variables.
  */
 @ServiceProvider(service=wts.models.DisMELS.framework.LifeStageAttributesInterface.class)
-public class FDLStageAttributes extends  AbstractNonEggStageAttributes {
+public class FDLStageAttributes extends  AbstractLarvalAttributes {
     
     private static final Logger logger = Logger.getLogger(FDLStageAttributes.class.getName());
     

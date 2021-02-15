@@ -1,9 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * IBMFunction_EggStageSTDGrowthRateSL.java
+ * 
+ * 2021-02-04: created function.
  */
-package sh.pcod;
+package sh.pcod.EggStage;
 
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -31,14 +31,14 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 public class IBMFunction_EggStageSTDGrowthRateSL extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
-    public static final String DEFAULT_name = "STDG rate (mm/d) for standard length in Pacific cod egg stages";
+    public static final String DEFAULT_name = "STDG rate (mm/d) for standard length of embryos in Pacific cod egg stages";
     /** function description */
-    public static final String DEFAULT_descr = "STDG rate (mm/d) for standard length in Pacific cod egg stages";
+    public static final String DEFAULT_descr = "STDG rate (mm/d) for standard length of embryos in Pacific cod egg stages";
     /** full description */
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
         "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* size/temperature-dependent function for growth (STDG) in standard length of egg stages."+
+        "\n\t* size/temperature-dependent function for growth (STDG) in standard length of embryos in egg stages."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -78,9 +78,11 @@ public class IBMFunction_EggStageSTDGrowthRateSL extends AbstractIBMFunction imp
     }
     
     /**
-     * Calculates growth rate in standard length (mm/d) based on input temperature. 
+     * Calculates growth rate in standard length (mm) of embryos in egg stages based on input temperature. 
      * 
-     * @param o - Double with value for in situ temperature in deg C.
+     * @param o - Double[] with values 
+     *     [0] - in situ temperature in deg C 
+     *     [1] - standard length in mm.
      * 
      * @return Double - growth rate (mm/d)
      * 

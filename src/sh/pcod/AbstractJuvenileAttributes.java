@@ -1,43 +1,35 @@
-/*
- * YSLStageAttributes.java
+/**
+ * AbstractJuvenileAttributes.java
  *
- * Updated 10/11/2018:
- *   Added "attached" as attribute due to changes in DisMELS framework
- * 20210208: 1. extends AbstractLarvalAttributes.
- * 20210209: 1. added PROPs for YSA, PNR, and PrNotFed.
- *
+ * Updated:
+ * 20210206: 1. Created new abstract class for juvenile life stages.
+ * 20210208: 1. Added TL, WW, grTL, and grWW  attributes.
  */
 
-package sh.pcod.YSLStage;
+package sh.pcod;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
-import org.openide.util.lookup.ServiceProvider;
-import sh.pcod.AbstractLarvalAttributes;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttribute;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
-import static wts.models.DisMELS.framework.LifeStageAttributesInterface.PROP_typeName;
-import static wts.models.DisMELS.framework.LifeStageDataInterface.cc;
 
 /**
- * DisMELS class representing attributes for Pacific cod yolk-sac larvae.
+ * DisMELS class representing attributes for juvenile stage Pacific cod classes.
  */
-@ServiceProvider(service=wts.models.DisMELS.framework.LifeStageAttributesInterface.class)
-public class YSLStageAttributes extends AbstractLarvalAttributes {
+public abstract class AbstractJuvenileAttributes extends AbstractLarvalAttributes {
     
     /** Number of new attributes defined by this class */
-    public static final int numNewAttributes = 3;
+    public static final int numNewAttributes = 5;
     /** key for the habitat suitability attribute */
-    public static final String PROP_progYSA = "indicator for yolk-sac absorption";
+    public static final String PROP_hsi = "habitat suitability index";
     /** key for the total length attribute */
-    public static final String PROP_progPNR  = "indicator for point-of-no return";
-    /** key for the probability of NOT having fed attribute */
-    public static final String PROP_prNotFed  = "probability of not having fed";
+    public static final String PROP_TL  = "total length (mm)";
+    /** key for the wet weight attribute */
+    public static final String PROP_WW  = "wet weight (mg)";
+    /** key for the total length attribute */
+    public static final String PROP_grTL  = "growth rate for total length (mm/d)";
+    /** key for the wet weight attribute */
+    public static final String PROP_grWW  = "growth rate for wet weight (1/d)";
     
     /** these fields HIDE static fields from superclass and should incorporate ALL information from superclasses */
     protected static final int numAttributes = AbstractLarvalAttributes.numAttributes+numNewAttributes;
@@ -47,13 +39,13 @@ public class YSLStageAttributes extends AbstractLarvalAttributes {
     protected static final Class[]  classes    = new Class[numAttributes];
     protected static final String[] shortNames = new String[numAttributes];
    
-    private static final Logger logger = Logger.getLogger(YSLStageAttributes.class.getName());
+    private static final Logger logger = Logger.getLogger(AbstractJuvenileAttributes.class.getName());
     
     /**
      * This constructor is provided only to facilitate the ServiceProvider functionality.
      * DO NOT USE IT!!
      */
-    public YSLStageAttributes(){
+    protected AbstractJuvenileAttributes(){
         super("NULL");
         finishInstantiation();
     }
@@ -61,7 +53,7 @@ public class YSLStageAttributes extends AbstractLarvalAttributes {
     /**
      * Creates a new attributes instance with type name 'typeName'.
      */
-    public YSLStageAttributes(String typeName) {
+    protected AbstractJuvenileAttributes(String typeName) {
         super(typeName);
         finishInstantiation();
     }
@@ -79,9 +71,11 @@ public class YSLStageAttributes extends AbstractLarvalAttributes {
             keys.addAll(AbstractLarvalAttributes.keys);//add from superclass
             mapAttributes.putAll(AbstractLarvalAttributes.mapAttributes);//add from superclass
             String key;
-            key = PROP_progYSA;  keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"progYSA"));
-            key = PROP_progPNR;  keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"progPNR"));
-            key = PROP_prNotFed; keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"prNotFed"));
+            key = PROP_hsi;   keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"hsi"));
+            key = PROP_TL;    keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"TL"));
+            key = PROP_WW;    keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"WW"));
+            key = PROP_grTL;  keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"grTL"));
+            key = PROP_grWW;  keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"grWW"));
             
             Iterator<String> it = keys.iterator();
             int j = 0; it.next();//skip typeName
@@ -90,38 +84,13 @@ public class YSLStageAttributes extends AbstractLarvalAttributes {
         //set instance information
         Map<String,Object> tmpMapValues = new HashMap<>(2*numAttributes);
         tmpMapValues.putAll(mapValues);//copy from super
-        tmpMapValues.put(PROP_progYSA,  new Double(0));//add to superclass values
-        tmpMapValues.put(PROP_progPNR,  new Double(0));
-        tmpMapValues.put(PROP_prNotFed, new Double(1));
+        tmpMapValues.put(PROP_hsi,  new Double(-1));//add to superclass values
+        tmpMapValues.put(PROP_TL,   new Double(0));
+        tmpMapValues.put(PROP_WW,   new Double(0));
+        tmpMapValues.put(PROP_grTL, new Double(0));
+        tmpMapValues.put(PROP_grWW, new Double(0));
         mapValues = tmpMapValues;//assign to super
     }
-    
-    /**
-     * Returns a deep copy of the instance.  Values are copied.  
-     * Any listeners on 'this' are not(?) copied, so these need to be hooked up.
-     * @return - the clone.
-     */
-    @Override
-    public Object clone() {
-        YSLStageAttributes clone = new YSLStageAttributes(typeName);
-        for (String key: keys) clone.setValue(key,this.getValue(key));
-        return clone;
-    }
-
-    /**
-     * Returns a new instance constructed from the values of the string[].
-     * The first value in the string vector must be the type name.
-     * Values are set internally by calling setValues(strv) on the new instance.
-     * @param strv - vector of values (as Strings) 
-     * @return - the new instance
-     */
-    @Override
-    public YSLStageAttributes createInstance(final String[] strv) {
-        YSLStageAttributes atts = new YSLStageAttributes(strv[0]);//this sets atts.typeName
-        atts.setValues(strv);
-        return atts;
-    }
-    
 
     /**
      * Returns the attribute values as an ArrayList (including typeName).

@@ -16,7 +16,7 @@ public class FDLStageAttributesBeanInfo extends SimpleBeanInfo {
     // Bean descriptor//GEN-FIRST:BeanDescriptor
     /*lazy BeanDescriptor*/
     private static BeanDescriptor getBdescriptor(){
-        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.FDLStage.FDLStageAttributes.class , sh.pcod.NonEggStageAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
+        BeanDescriptor beanDescriptor = new BeanDescriptor  ( sh.pcod.FDLStage.FDLStageAttributes.class , sh.pcod.LarvalAttributesCustomizer.class ); // NOI18N//GEN-HEADEREND:BeanDescriptor
         // Here you can add code for customizing the BeanDescriptor.
 
         return beanDescriptor;     }//GEN-LAST:BeanDescriptor
@@ -137,7 +137,7 @@ public class FDLStageAttributesBeanInfo extends SimpleBeanInfo {
             methods[METHOD_getValue10].setDisplayName ( "" );
             methods[METHOD_getValue11] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("getValue", new Class[] {java.lang.String.class})); // NOI18N
             methods[METHOD_getValue11].setDisplayName ( "" );
-            methods[METHOD_getValueAsString12] = new MethodDescriptor(sh.pcod.AbstractNonEggStageAttributes.class.getMethod("getValueAsString", new Class[] {java.lang.String.class})); // NOI18N
+            methods[METHOD_getValueAsString12] = new MethodDescriptor(sh.pcod.AbstractLarvalAttributes.class.getMethod("getValueAsString", new Class[] {java.lang.String.class})); // NOI18N
             methods[METHOD_getValueAsString12].setDisplayName ( "" );
             methods[METHOD_setValue13] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, java.lang.Object.class})); // NOI18N
             methods[METHOD_setValue13].setDisplayName ( "" );
@@ -149,7 +149,7 @@ public class FDLStageAttributesBeanInfo extends SimpleBeanInfo {
             methods[METHOD_setValue16].setDisplayName ( "" );
             methods[METHOD_setValue17] = new MethodDescriptor(wts.models.DisMELS.framework.AbstractLHSAttributes.class.getMethod("setValue", new Class[] {java.lang.String.class, long.class})); // NOI18N
             methods[METHOD_setValue17].setDisplayName ( "" );
-            methods[METHOD_setValueFromString18] = new MethodDescriptor(sh.pcod.AbstractNonEggStageAttributes.class.getMethod("setValueFromString", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
+            methods[METHOD_setValueFromString18] = new MethodDescriptor(sh.pcod.AbstractLarvalAttributes.class.getMethod("setValueFromString", new Class[] {java.lang.String.class, java.lang.String.class})); // NOI18N
             methods[METHOD_setValueFromString18].setDisplayName ( "" );
         }
         catch( Exception e) {}//GEN-HEADEREND:Methods

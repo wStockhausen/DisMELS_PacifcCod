@@ -6,6 +6,10 @@
  * 20190716: 1. Added "hsi" as attribute to incorporate habitat suitability index
  *           2. removed PROP_density and PROP_devStage attributes
  * 20190722: 1. Removed "hsi" attribute since most subclasses don't use it
+ * 20210205: 1. Added PROP_DW, changed PROP_length to PROP_SL.
+ * 20210206: 1. Renamed class to AbstractLarvalAttributes from AbstractNonEggStageAttributes
+ *                in conjunction with creation of AbstractJuvenileAttributes.
+ * 20210206: 1. Added growth rates in SL and DW as attributes. 
  */
 
 package sh.pcod;
@@ -18,14 +22,17 @@ import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeBoolean;
 import wts.models.DisMELS.framework.IBMAttributes.IBMAttributeDouble;
 
 /**
- * DisMELS class representing attributes for non-egg stage Pacific cod classes.
+ * DisMELS class representing attributes for larval stage Pacific cod classes.
  */
-public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttributes {
+public abstract class AbstractLarvalAttributes extends AbstractLHSAttributes {
     
     /** Number of new attributes defined by this class */
-    public static final int numNewAttributes = 8;
+    public static final int numNewAttributes = 11;
     public static final String PROP_attached    = "attached";
-    public static final String PROP_length      = "standard length";
+    public static final String PROP_SL          = "standard length (mm)";
+    public static final String PROP_DW          = "dry weight (mg)";
+    public static final String PROP_grSL        = "growth rate for SL (mm/d)";
+    public static final String PROP_grDW        = "growth rate for DW (1/d)";
     public static final String PROP_temperature = "temperature deg C";
     public static final String PROP_salinity    = "salinity";
     public static final String PROP_rho         = "in situ density";
@@ -33,7 +40,7 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     public static final String PROP_neocalanus  = "Neocalanoids mg/m^3 dry wt";
     public static final String PROP_euphausiid  = "Euphausiids mg/m^3 dry wt C";
     
-    /** these fields HIDE static fields from superclass and should incorporate ALL information from superclases */
+    /** these fields HIDE static fields from superclass and should incorporate ALL information from superclasses */
     protected static final int numAttributes = AbstractLHSAttributes.numAttributes+numNewAttributes;
     protected static final Set<String> keys = new LinkedHashSet<>(2*numAttributes);
     protected static final Map<String,IBMAttribute> mapAttributes = new HashMap<>(2*numAttributes);
@@ -41,13 +48,13 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     protected static final Class[]  classes    = new Class[numAttributes];
     protected static final String[] shortNames = new String[numAttributes];
    
-    private static final Logger logger = Logger.getLogger(AbstractNonEggStageAttributes.class.getName());
+    private static final Logger logger = Logger.getLogger(AbstractLarvalAttributes.class.getName());
     
     /**
      * This constructor is provided only to facilitate the ServiceProvider functionality.
      * DO NOT USE IT!!
      */
-    protected AbstractNonEggStageAttributes(){
+    protected AbstractLarvalAttributes(){
         super("NULL");
         finishInstantiation();
     }
@@ -55,7 +62,7 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
     /**
      * Creates a new attributes instance with type name 'typeName'.
      */
-    protected AbstractNonEggStageAttributes(String typeName) {
+    protected AbstractLarvalAttributes(String typeName) {
         super(typeName);
         finishInstantiation();
     }
@@ -74,7 +81,10 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
             mapAttributes.putAll(AbstractLHSAttributes.mapAttributes);//add from superclass
             String key;
             key = PROP_attached;   keys.add(key); mapAttributes.put(key,new IBMAttributeBoolean(key,"attached"));
-            key = PROP_length;     keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"length"));
+            key = PROP_SL;         keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"SL"));
+            key = PROP_DW;         keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"DW"));
+            key = PROP_grSL;       keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"grSL"));
+            key = PROP_grDW;       keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"grDW"));
             key = PROP_temperature;keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"temp"));
             key = PROP_salinity;   keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"sal"));
             key = PROP_rho;        keys.add(key); mapAttributes.put(key,new IBMAttributeDouble(key,"rho"));
@@ -90,7 +100,10 @@ public abstract class AbstractNonEggStageAttributes extends AbstractLHSAttribute
         Map<String,Object> tmpMapValues = new HashMap<>(2*numAttributes);
         tmpMapValues.putAll(mapValues);//copy from super
         tmpMapValues.put(PROP_attached,   false);
-        tmpMapValues.put(PROP_length,     new Double(0));
+        tmpMapValues.put(PROP_SL,         new Double(0));
+        tmpMapValues.put(PROP_DW,         new Double(0));
+        tmpMapValues.put(PROP_grSL,       new Double(0));
+        tmpMapValues.put(PROP_grDW,       new Double(0));
         tmpMapValues.put(PROP_temperature,new Double(-1));
         tmpMapValues.put(PROP_salinity,   new Double(-1));
         tmpMapValues.put(PROP_rho,        new Double(-1));

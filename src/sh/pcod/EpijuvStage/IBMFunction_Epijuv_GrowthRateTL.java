@@ -25,7 +25,7 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
     @ServiceProvider(service=IBMFunctionInterface.class)}
 )
 
-public class IBMFunction_GrowthRateTL_Epijuv extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
+public class IBMFunction_Epijuv_GrowthRateTL extends AbstractIBMFunction implements IBMGrowthFunctionInterface {
     public static final String DEFAULT_type = "Growth";
     /** user-friendly function name */
     public static final String DEFAULT_name = "Growth rate (mm/d) in total length for Pacific cod Epijuv";
@@ -54,13 +54,13 @@ public class IBMFunction_GrowthRateTL_Epijuv extends AbstractIBMFunction impleme
     public static final int numParams = 0;
     /** number of sub-functions */
     public static final int numSubFuncs = 0;
-    public IBMFunction_GrowthRateTL_Epijuv(){
+    public IBMFunction_Epijuv_GrowthRateTL(){
         super(numParams,numSubFuncs,DEFAULT_type,DEFAULT_name,DEFAULT_descr,DEFAULT_fullDescr);
     }
     
     @Override
     public Object clone() {
-        IBMFunction_GrowthRateTL_Epijuv clone = new IBMFunction_GrowthRateTL_Epijuv();
+        IBMFunction_Epijuv_GrowthRateTL clone = new IBMFunction_Epijuv_GrowthRateTL();
         clone.setFunctionType(getFunctionType());
         clone.setFunctionName(getFunctionName());
         clone.setDescription(getDescription());

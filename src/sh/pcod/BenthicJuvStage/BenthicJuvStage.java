@@ -10,6 +10,8 @@
  * 20181015: 1. Removed minSettlementDepth, maxSettlementDepth parameters since they don't apply.
  *           2. Removed most of getMetamorphosedIndividuals() because there is no follow-on stage.
  * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
+ * 20210211: 1. Added DW, TL, and WW as attributes, with corresponding growth rates.
+ *           2. Revised logic slightly for setAttributes, setInfo methods, updateAttributes, updateVariables
  *
  */
 
@@ -26,6 +28,8 @@ import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.EpijuvStage.EpijuvStageAttributes;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateDW;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateSL;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_Constant;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF;
 import wts.models.DisMELS.IBMFunctions.HSMs.HSMFunction_NetCDF_InMemory;
@@ -84,40 +88,68 @@ public class BenthicJuvStage extends AbstractLHS {
     protected boolean useRandomTransitions;
     
         //fields that reflect (new) attribute values
-    /** flag indicating individual is attached to bottom */
-    protected boolean attached = true;
+    protected boolean attached = false;
+    /** standard length (mm) */
+    protected double std_len = 0;
+    /** dry weight (mg) */
+    protected double dry_wgt = 0;
+    /** growth rate for standard length (mm/d) */
+    protected double grSL = 0;
+    /** growth rate for dry weight (1/d) */
+    protected double grDW = 0;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
     /** in situ salinity */
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    /** in situ small copepods */
-     protected double copepod = 0;    
-     /** in situ euphausiid density mg/m^3, dry wt)) */
+    /** in situ small copepod density (mg/m^3, dry wt) */
+     protected double copepod;
+     /** in situ euphausiid density (mg/m^3, dry wt) */
     protected double euphausiid = 0;
-     /** in situ neocalanoid density mg/m^3, dry wt)) */
+     /** in situ neocalanoid (large copepods) density (mg/m^3, dry wt) */
     protected double neocalanus = 0;
+    /** total length (mm) */
+    protected double tot_len = 0;
+    /** wet weight (mg) */
+    protected double wet_wgt = 0;
+    /** growth rate for total length (mm/d) */
+    protected double grTL = 0;
+    /** growth rate for wet weight (1/d) */
+    protected double grWW = 0;
     /** habitat suitability index value */
     protected double hsi = 0;
     
-    //SH_NEW
-    /**growth in Length mm/d */
-    protected double gL = 0;
-    /**FDL Length variable (mm) */
-    protected double length = 0;
-    /**FDL maximum size = random between 25-35.  Stays the same at each time step*/
-    protected double maxlength;
-
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
+    /** IBM function selected for growth in SL */
+    private IBMFunctionInterface fcnGrSL = null; 
+    /** IBM function selected for growth in DW */
+    private IBMFunctionInterface fcnGrDW = null; 
+    /** IBM function selected for vertical movement */
+    private IBMFunctionInterface fcnVM = null; 
+    /** IBM function selected for vertical velocity */
+    private IBMFunctionInterface fcnVV = null; 
+    /** IBM function selected for growth in TL */
+    private IBMFunctionInterface fcnGrTL = null; 
+    /** IBM function selected for growth in WW */
+    private IBMFunctionInterface fcnGrWW = null; 
     /** IBM function selected for HSM */
     private IBMFunctionInterface fcnHSI = null; 
     
+    private int typeMort = 0;//integer indicating mortality function
+    private int typeGrSL = 0;//integer indicating SL growth function
+    private int typeGrDW = 0;//integer indicating DW growth function
+    private int typeVM   = 0;//integer indicating vertical movement function
+    private int typeVV   = 0;//integer indicating vertical velocity function
+    private int typeGrTL = 0;//integer indicating TL growth function
+    private int typeGrWW = 0;//integer indicating WW growth function
+    private int typeHSI  = 0;//integer indicating HSI function
+
     private static final Logger logger = Logger.getLogger(BenthicJuvStage.class.getName());
     
     /**
@@ -140,6 +172,10 @@ public class BenthicJuvStage extends AbstractLHS {
      * The attributes are vanilla.  Initial attribute values should be set,
      * then initialize() should be called to initialize all instance variables.
      * DO NOT DELETE THIS CONSTRUCTOR!!
+     * 
+     * @param typeName
+     * @throws java.lang.InstantiationException
+     * @throws java.lang.IllegalAccessException
      */
     public BenthicJuvStage(String typeName) 
                 throws InstantiationException, IllegalAccessException {
@@ -161,7 +197,8 @@ public class BenthicJuvStage extends AbstractLHS {
      * Side effects:
      *  1. Calls createInstance(LifeStageAttributesInterface), with associated effects,
      *  based on creating an attributes instance from the string array.
-     * /
+     * 
+     * 
      * @param strv - attributes as string array
      * @return - instance of LHS
      * @throws java.lang.InstantiationException
@@ -220,6 +257,8 @@ public class BenthicJuvStage extends AbstractLHS {
 
     /**
      *  Returns the associated attributes.  
+     * 
+     * @return returns the attributes instance
      */
     @Override
     public BenthicJuvStageAttributes getAttributes() {
@@ -286,29 +325,37 @@ public class BenthicJuvStage extends AbstractLHS {
             EpijuvStageAttributes oldAtts = (EpijuvStageAttributes) newAtts;
             //EpijuvStageAttributes and BenthicJuvStageAttributes have identical attribute keys 
             for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
+            //no need to set attributes NOT in EpijuvStageAttributes
         } else {
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
         id = atts.getValue(BenthicJuvStageAttributes.PROP_id, id);
-        updateVariables();
     }
     
     /**
      *  Sets the associated attributes object. Use this after creating an LHS instance
      * as an "output" from another LHS that is functioning as an ordinary individual.
+     * @param oldLHS
      */
     @Override
     public void setInfoFromIndividual(LifeStageInterface oldLHS){
         /** 
          * Since this is a single individual making a transition, we need to:
-         *  1) copy the attributes from the old LHS (id's should remain as for old LHS)
-         *  2) set age in stage = 0
-         *  3) set active and alive to true
-         *  5) copy the Lagrangian Particle from the old LHS
-         *  6) start a new track from the current position for the oldLHS
+         *  1) copy the Lagrangian Particle from the old LHS
+         *  2) start a new track from the current position for the oldLHS
+         *  3) copy the attributes from the old LHS (id's should remain as for old LHS)
+         *  4) set values for attributes NOT included in oldLHS
+         *  5) set age in stage = 0
+         *  6) set active and alive to true
          *  7) update local variables
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         LifeStageAttributesInterface oldAtts = oldLHS.getAttributes();            
         setAttributes(oldAtts);
         
@@ -318,11 +365,6 @@ public class BenthicJuvStage extends AbstractLHS {
         atts.setValue(BenthicJuvStageAttributes.PROP_alive,true);     //set alive to true
         id = atts.getID(); //reset id for current LHS to one from old LHS
 
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
@@ -330,23 +372,32 @@ public class BenthicJuvStage extends AbstractLHS {
     /**
      *  Sets the associated attributes object. Use this after creating an LHS instance
      * as an "output" from another LHS that is functioning as a super individual.
+     * 
+     * @param oldLHS
+     * @param numTrans
      */
     @Override
     public void setInfoFromSuperIndividual(LifeStageInterface oldLHS, double numTrans) {
         /** 
          * Since the old LHS instance is a super individual, only a part 
          * (numTrans) of it transitioned to the current LHS. Thus, we need to:
-         *          1) copy most attribute values from old stage
-         *          2) make sure id for this LHS is retained, not changed
-         *          3) assign old LHS id to this LHS as parentID
-         *          4) copy old LHS origID to this LHS origID
-         *          5) set number in this LHS to numTrans
-         *          6) reset age in stage to 0
-         *          7) set active and alive to true
-         *          9) copy the Lagrangian Particle from the old LHS
-         *         10) start a new track from the current position for the oldLHS
-         *         11) update local variables to match attributes
+         *          1) copy the Lagrangian Particle from the old LHS
+         *          2) start a new track from the current position for the oldLHS
+         *          3) copy some attribute values from old stage and determine values for new attributes
+         *          4) make sure id for this LHS is retained, not changed
+         *          5) assign old LHS id to this LHS as parentID
+         *          6) copy old LHS origID to this LHS origID
+         *          7) set number in this LHS to numTrans
+         *          8) reset age in stage to 0
+         *          9) set active and alive to true
+         *         10) update local variables to match attributes
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         //copy some variables that should not change
         long idc = id;
         
@@ -364,11 +415,6 @@ public class BenthicJuvStage extends AbstractLHS {
         atts.setValue(BenthicJuvStageAttributes.PROP_active,true);     //set active to true
         atts.setValue(BenthicJuvStageAttributes.PROP_alive,true);      //set alive to true
             
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
@@ -392,7 +438,35 @@ public class BenthicJuvStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_Mortality);
-            fcnHSI = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_HSM);
+            fcnGrSL = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_GrowthSL);
+            fcnGrDW = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_GrowthDW);
+            fcnGrTL = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_GrowthTL);
+            fcnGrWW = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_GrowthWW);
+            fcnHSI  = params.getSelectedIBMFunctionForCategory(BenthicJuvStageParameters.FCAT_HSM);
+            
+            if (fcnMortality instanceof ConstantMortalityRate)
+                typeMort = BenthicJuvStageParameters.FCN_Mortality_ConstantMortalityRate;
+            else if (fcnMortality instanceof InversePowerLawMortalityRate)
+                typeMort = BenthicJuvStageParameters.FCN_Mortality_InversePowerLawMortalityRate;
+            
+            if (fcnGrSL instanceof IBMFunction_NonEggStageSTDGrowthRateSL) 
+                typeGrSL = BenthicJuvStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate;
+            
+            if (fcnGrDW instanceof IBMFunction_NonEggStageSTDGrowthRateDW) 
+                typeGrDW = BenthicJuvStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate;
+            
+            if (fcnGrTL instanceof IBMFunction_BenthicJuv_GrowthRateTL)    
+                typeGrTL = BenthicJuvStageParameters.FCN_GrTL_BenthicJuv_GrowthRate;
+            
+            if (fcnGrWW instanceof IBMFunction_BenthicJuv_GrowthRateWW)    
+                typeGrWW = BenthicJuvStageParameters.FCN_GrWW_BenthicJuv_GrowthRate;
+            
+            if (fcnHSI instanceof HSMFunction_Constant)        
+                typeHSI = BenthicJuvStageParameters.FCN_HSM_Constant;
+            else if (fcnHSI instanceof HSMFunction_NetCDF)          
+                typeHSI = BenthicJuvStageParameters.FCN_HSM_NetCDF;
+            else if (fcnHSI instanceof HSMFunction_NetCDF_InMemory) 
+                typeHSI = BenthicJuvStageParameters.FCN_HSM_NetCDF_InMemory;
         } else {
             //TODO: throw some error
         }
@@ -424,7 +498,8 @@ public class BenthicJuvStage extends AbstractLHS {
         BenthicJuvStage clone = null;
         try {
             clone = (BenthicJuvStage) super.clone();
-            clone.setAttributes(atts);//this clones atts
+            clone.setAttributes(atts);  //this clones atts
+            clone.updateVariables();    //this sets the variables in the clone to the attribute values
             clone.setParameters(params);//this clones params
             clone.lp      = (LagrangianParticle) lp.clone();
             clone.track   = (ArrayList<Coordinate>) track.clone();
@@ -562,12 +637,13 @@ public class BenthicJuvStage extends AbstractLHS {
             //reset track array
             track.clear();
             trackLL.clear();
+            
             //set horizType to lat/lon and vertType to depth
             atts.setValue(BenthicJuvStageAttributes.PROP_horizType,Types.HORIZ_LL);
             atts.setValue(BenthicJuvStageAttributes.PROP_vertType,Types.VERT_H);
+            
             //interpolate initial position and environmental variables
             double[] pos = lp.getIJK();
-            //SH_NEW  9_14
             updatePosition(pos);
             updateEnvVars(pos);
             updateAttributes(); 
@@ -581,11 +657,21 @@ public class BenthicJuvStage extends AbstractLHS {
         double T = i3d.interpolateTemperature(pos);
         
         time += dt;
-        double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
-        //Growth in length
+        double dtday = dt/86400;//time step in days
+        //calculate growth in length, weight
         if(T<=0.0) T=0.01; 
-        gL = (-0.081 + (0.079 * T) - (0.003 * T * T));//Hurst et al 2010, juvenile eq, mm per day
-        length += (gL*dtday);
+        if (typeGrSL==BenthicJuvStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate)
+            grSL = (Double) fcnGrSL.calculate(new Double[]{T,std_len});
+        if (typeGrDW==BenthicJuvStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate)
+            grDW = (Double) fcnGrDW.calculate(new Double[]{T,dry_wgt});
+        if (typeGrTL==BenthicJuvStageParameters.FCN_GrTL_BenthicJuv_GrowthRate)
+            grTL = (Double) fcnGrTL.calculate(T);
+        if (typeGrWW==BenthicJuvStageParameters.FCN_GrWW_BenthicJuv_GrowthRate)
+            grWW = (Double) fcnGrWW.calculate(T);
+        std_len += grSL*dtday;
+        dry_wgt *= Math.exp(grDW * dtday);
+        tot_len += grTL*dtday;
+        wet_wgt *= Math.exp(grWW * dtday);
         
         updatePosition(pos);
         updateEnvVars(pos);
@@ -623,11 +709,11 @@ public class BenthicJuvStage extends AbstractLHS {
     private void updateNum(double dt) {
         //{WTS_NEW 2012-07-26:
         double mortalityRate = 0.0D;//in unis of [days]^-1
-        if (fcnMortality instanceof ConstantMortalityRate){
+        if (typeMort == BenthicJuvStageParameters.FCN_Mortality_ConstantMortalityRate){
             mortalityRate = (Double)fcnMortality.calculate(null);
         } else 
-        if (fcnMortality instanceof InversePowerLawMortalityRate){
-          //  mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+        if (typeMort == BenthicJuvStageParameters.FCN_Mortality_InversePowerLawMortalityRate){
+          mortalityRate = (Double)fcnMortality.calculate(std_len);//using standard length as covariate for mortality
         }
         double totRate = mortalityRate;
         if ((ageInStage>=minStageDuration)) {
@@ -654,10 +740,10 @@ public class BenthicJuvStage extends AbstractLHS {
      * @param pos - double[] giving position in ROMS {xi, eta, K} grid coordinates
      */
     private void updatePosition(double[] pos) {
-        bathym     = i3d.interpolateBathymetricDepth(pos);
+        bathym     =  i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-        lat        = i3d.interpolateLat(pos);
-        lon        = i3d.interpolateLon(pos);
+        lat        =  i3d.interpolateLat(pos);
+        lon        =  i3d.interpolateLon(pos);
         gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
         updateTrack();
     }
@@ -679,22 +765,38 @@ public class BenthicJuvStage extends AbstractLHS {
     private void updateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
-        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
+        
+        if (i3d.getPhysicalEnvironment().getField("rho")!=null) 
+            rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
+        
         if (i3d.getPhysicalEnvironment().getField(FIELD_Cop)!=null) 
             copepod    = i3d.interpolateValue(pos,FIELD_Cop,Interpolator3D.INTERP_VAL);
+        
         if (i3d.getPhysicalEnvironment().getField(FIELD_Eup)!=null) 
             euphausiid = i3d.interpolateValue(pos,FIELD_Eup,Interpolator3D.INTERP_VAL);
+        
         if (i3d.getPhysicalEnvironment().getField(FIELD_NCa)!=null) 
             neocalanus = i3d.interpolateValue(pos,FIELD_NCa,Interpolator3D.INTERP_VAL);
-        if (fcnHSI instanceof HSMFunction_Constant){
-            hsi = (Double)fcnHSI.calculate(null);//constant value
-        } else if (fcnHSI instanceof HSMFunction_NetCDF){
-            double[] posLL = new double[]{lon,lat};
-            hsi = (Double)fcnHSI.calculate(posLL);
-        } else if (fcnHSI instanceof HSMFunction_NetCDF_InMemory){
-            double[] posLL = new double[]{lon,lat};
-            hsi = (Double)fcnHSI.calculate(posLL);
+        
+        switch (typeHSI) {
+            case BenthicJuvStageParameters.FCN_HSM_Constant:
+                hsi = (Double)fcnHSI.calculate(null);//constant value
+                break;
+            case BenthicJuvStageParameters.FCN_HSM_NetCDF:
+                {
+                    double[] posLL = new double[]{lon,lat};
+                    hsi = (Double)fcnHSI.calculate(posLL);
+                    break;
+                }
+            case BenthicJuvStageParameters.FCN_HSM_NetCDF_InMemory:
+                {
+                    double[] posLL = new double[]{lon,lat};
+                    hsi = (Double)fcnHSI.calculate(posLL);
+                    break;
+                }
+            default:
+                break;
         }
     }
 
@@ -708,7 +810,7 @@ public class BenthicJuvStage extends AbstractLHS {
         startTime = newTime;
         time      = startTime;
         atts.setValue(BenthicJuvStageAttributes.PROP_startTime,startTime);
-        atts.setValue(BenthicJuvStageAttributes.PROP_time,time);
+        atts.setValue(BenthicJuvStageAttributes.PROP_time,     time);
     }
 
     @Override
@@ -775,15 +877,22 @@ public class BenthicJuvStage extends AbstractLHS {
     @Override
     protected void updateAttributes() {
         super.updateAttributes();
-        atts.setValue(BenthicJuvStageAttributes.PROP_attached,attached);
-        atts.setValue(BenthicJuvStageAttributes.PROP_length,length);
-        atts.setValue(EpijuvStageAttributes.PROP_temperature,temperature);    
-        atts.setValue(EpijuvStageAttributes.PROP_salinity,salinity);
-        atts.setValue(EpijuvStageAttributes.PROP_rho,rho);
-        atts.setValue(EpijuvStageAttributes.PROP_copepod,copepod);
-        atts.setValue(EpijuvStageAttributes.PROP_neocalanus,neocalanus);
-        atts.setValue(EpijuvStageAttributes.PROP_euphausiid,euphausiid);
-        atts.setValue(EpijuvStageAttributes.PROP_hsi,hsi);
+        atts.setValue(BenthicJuvStageAttributes.PROP_attached,   attached);
+        atts.setValue(BenthicJuvStageAttributes.PROP_SL,         std_len);
+        atts.setValue(BenthicJuvStageAttributes.PROP_DW,         dry_wgt);
+        atts.setValue(BenthicJuvStageAttributes.PROP_grSL,       grSL);
+        atts.setValue(BenthicJuvStageAttributes.PROP_grDW,       grDW);
+        atts.setValue(BenthicJuvStageAttributes.PROP_temperature,temperature);    
+        atts.setValue(BenthicJuvStageAttributes.PROP_salinity,   salinity);
+        atts.setValue(BenthicJuvStageAttributes.PROP_rho,        rho);
+        atts.setValue(BenthicJuvStageAttributes.PROP_copepod,    copepod);
+        atts.setValue(BenthicJuvStageAttributes.PROP_neocalanus, neocalanus);
+        atts.setValue(BenthicJuvStageAttributes.PROP_euphausiid, euphausiid);
+        atts.setValue(BenthicJuvStageAttributes.PROP_TL,         tot_len);
+        atts.setValue(BenthicJuvStageAttributes.PROP_WW,         wet_wgt);
+        atts.setValue(BenthicJuvStageAttributes.PROP_grTL,       grTL);
+        atts.setValue(BenthicJuvStageAttributes.PROP_grWW,       grWW);
+        atts.setValue(BenthicJuvStageAttributes.PROP_hsi,        hsi);
     }
 
     /**
@@ -792,14 +901,21 @@ public class BenthicJuvStage extends AbstractLHS {
     @Override
     protected void updateVariables() {
         super.updateVariables();
-        attached    = atts.getValue(BenthicJuvStageAttributes.PROP_attached,attached);
-        length      = atts.getValue(BenthicJuvStageAttributes.PROP_length,length);
-        temperature = atts.getValue(EpijuvStageAttributes.PROP_temperature,temperature);
-        salinity    = atts.getValue(EpijuvStageAttributes.PROP_salinity,   salinity);
-        rho         = atts.getValue(EpijuvStageAttributes.PROP_rho,        rho);
-        copepod     = atts.getValue(EpijuvStageAttributes.PROP_copepod,    copepod);
-        neocalanus  = atts.getValue(EpijuvStageAttributes.PROP_neocalanus, neocalanus);
-        euphausiid  = atts.getValue(EpijuvStageAttributes.PROP_euphausiid, euphausiid);
-        hsi         = atts.getValue(EpijuvStageAttributes.PROP_hsi,        hsi);
+        attached    = atts.getValue(BenthicJuvStageAttributes.PROP_attached,    attached);
+        std_len     = atts.getValue(BenthicJuvStageAttributes.PROP_SL,          std_len);
+        dry_wgt     = atts.getValue(BenthicJuvStageAttributes.PROP_DW,          dry_wgt);
+        grSL        = atts.getValue(BenthicJuvStageAttributes.PROP_grSL,        grSL);
+        grDW        = atts.getValue(BenthicJuvStageAttributes.PROP_grDW,        grDW);
+        temperature = atts.getValue(BenthicJuvStageAttributes.PROP_temperature, temperature);
+        salinity    = atts.getValue(BenthicJuvStageAttributes.PROP_salinity,    salinity);
+        rho         = atts.getValue(BenthicJuvStageAttributes.PROP_rho,         rho);
+        copepod     = atts.getValue(BenthicJuvStageAttributes.PROP_copepod,     copepod);
+        neocalanus  = atts.getValue(BenthicJuvStageAttributes.PROP_neocalanus,  neocalanus);
+        euphausiid  = atts.getValue(BenthicJuvStageAttributes.PROP_euphausiid,  euphausiid);
+        tot_len     = atts.getValue(BenthicJuvStageAttributes.PROP_TL,          tot_len);
+        wet_wgt     = atts.getValue(BenthicJuvStageAttributes.PROP_WW,          wet_wgt);
+        grTL        = atts.getValue(BenthicJuvStageAttributes.PROP_grTL,        grTL);
+        grWW        = atts.getValue(BenthicJuvStageAttributes.PROP_grWW,        grWW);
+        hsi         = atts.getValue(BenthicJuvStageAttributes.PROP_hsi,         hsi);
      }
 }

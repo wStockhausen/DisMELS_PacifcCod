@@ -18,6 +18,8 @@ import java.util.logging.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import org.openide.util.lookup.ServiceProvider;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateDW;
+import sh.pcod.IBMFunction_NonEggStageSTDGrowthRateSL;
 import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
@@ -25,6 +27,7 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
 import wts.models.utilities.DateTimeFunctions;
 import wts.roms.model.LagrangianParticle;
 import sh.pcod.YSLStage.YSLStageAttributes;
+import wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges;
 import wts.models.utilities.CalendarIF;
 import wts.roms.model.Interpolator3D;
 
@@ -81,28 +84,30 @@ public class FDLStage extends AbstractLHS {
         //fields that reflect (new) attribute values
     /** flag indicating individual is attached to bottom */
     protected boolean attached = false;
+    /** standard length (mm) */
+    protected double std_len = 0;
+    /** dry weight (mg) */
+    protected double dry_wgt = 0;
+    /** growth rate for standard length (mm/d) */
+    protected double grSL = 0;
+    /** growth rate for dry weight (1/d) */
+    protected double grDW = 0;
     /** in situ temperature (deg C) */
     protected double temperature = 0;
-     /** in situ copepod density (mg/m^3, dry wt) */
-     protected double copepod;    /** in situ small copepods */
-     /** in situ euphausiid density (mg/m^3, dry wt) */
-    protected double euphausiid = 0;    /** in situ euphausiids */
-     /** in situ neocalanoid density (mg/m^3, dry wt) */
-    protected double neocalanus = 0;    /** in situ large copepods */      
-     
-    
     /** in situ salinity */
     protected double salinity = 0;
     /** in situ water density */
     protected double rho = 0;
-    /**FDL Length variable (mm) */
-    protected double length = 0;
+    /** in situ small copepod density (mg/m^3, dry wt) */
+     protected double copepod; 
+     /** in situ euphausiid density (mg/m^3, dry wt) */
+    protected double euphausiid = 0;
+     /** in situ neocalanoid density (mg/m^3, dry wt) */
+    protected double neocalanus = 0;
 
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    /** growth in Length mm/d */
-    protected double gL = 0;
     /** FDL Size at flexion */
     protected double flexion=13.5;
     /** in situ temperature */
@@ -110,9 +115,21 @@ public class FDLStage extends AbstractLHS {
     
     /** IBM function selected for mortality */
     private IBMFunctionInterface fcnMortality = null; 
+    /** IBM function selected for growth in SL */
+    private IBMFunctionInterface fcnGrSL = null; 
+    /** IBM function selected for growth in DW */
+    private IBMFunctionInterface fcnGrDW = null; 
     /** IBM function selected for vertical movement */
     private IBMFunctionInterface fcnVM = null; 
+    /** IBM function selected for vertical velocity */
+    private IBMFunctionInterface fcnVV = null; 
     
+    private int typeMort = 0;//integer indicating mortality function
+    private int typeGrSL = 0;//integer indicating SL growth function
+    private int typeGrDW = 0;//integer indicating DW growth function
+    private int typeVM   = 0;//integer indicating vertical movement function
+    private int typeVV   = 0;//integer indicating vertical velocity function
+
     private static final Logger logger = Logger.getLogger(FDLStage.class.getName());
     
     /**
@@ -135,6 +152,9 @@ public class FDLStage extends AbstractLHS {
      * The attributes are vanilla.  Initial attribute values should be set,
      * then initialize() should be called to initialize all instance variables.
      * DO NOT DELETE THIS CONSTRUCTOR!!
+     * @param typeName
+     * @throws java.lang.InstantiationException
+     * @throws java.lang.IllegalAccessException
      */
     public FDLStage(String typeName) 
                 throws InstantiationException, IllegalAccessException {
@@ -278,15 +298,13 @@ public class FDLStage extends AbstractLHS {
         else if(newAtts instanceof YSLStageAttributes) {
             YSLStageAttributes oldAtts = (YSLStageAttributes) newAtts;
             for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
-           //SH_NEW
-            // atts.setValue(atts.PROP_length,oldAtts.getValue(EggStageAttributes.PROP_diameter, 1.0));
-            atts.setValue(FDLStageAttributes.PROP_length,oldAtts.getValue(YSLStageAttributes.PROP_length, length));
+            //all FDL attributes are also YSL attributes, so no need to do anything further
         } else {
             //TODO: should throw an error here
             logger.info("setAttributes(): no match for attributes type:"+newAtts.toString());
         }
         id = atts.getValue(FDLStageAttributes.PROP_id, id);
-        updateVariables();
+        //updateVariables();//this gets done in setInfoFrom... after call to this method, so no need to do it here
     }
     
     /**
@@ -297,13 +315,20 @@ public class FDLStage extends AbstractLHS {
     public void setInfoFromIndividual(LifeStageInterface oldLHS){
         /** 
          * Since this is a single individual making a transition, we need to:
-         *  1) copy the attributes from the old LHS (id's should remain as for old LHS)
-         *  2) set age in stage = 0
-         *  3) set active and alive to true
-         *  5) copy the Lagrangian Particle from the old LHS
-         *  6) start a new track from the current position for the oldLHS
+         *  1) copy the Lagrangian Particle from the old LHS
+         *  2) start a new track from the current position for the oldLHS
+         *  3) copy the attributes from the old LHS (id's should remain as for old LHS)
+         *  4) set values for attributes NOT included in oldLHS
+         *  5) set age in stage = 0
+         *  6) set active and alive to true
          *  7) update local variables
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         LifeStageAttributesInterface oldAtts = oldLHS.getAttributes();            
         setAttributes(oldAtts);
         
@@ -313,11 +338,6 @@ public class FDLStage extends AbstractLHS {
         atts.setValue(FDLStageAttributes.PROP_alive,true);     //set alive to true
         id = atts.getID(); //reset id for current LHS to one from old LHS
 
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
@@ -331,17 +351,23 @@ public class FDLStage extends AbstractLHS {
         /** 
          * Since the old LHS instance is a super individual, only a part 
          * (numTrans) of it transitioned to the current LHS. Thus, we need to:
-         *          1) copy most attribute values from old stage
-         *          2) make sure id for this LHS is retained, not changed
-         *          3) assign old LHS id to this LHS as parentID
-         *          4) copy old LHS origID to this LHS origID
-         *          5) set number in this LHS to numTrans
-         *          6) reset age in stage to 0
-         *          7) set active and alive to true
-         *          9) copy the Lagrangian Particle from the old LHS
-         *         10) start a new track from the current position for the oldLHS
-         *         11) update local variables to match attributes
+         *          1) copy the Lagrangian Particle from the old LHS
+         *          2) start a new track from the current position for the oldLHS
+         *          3) copy some attribute values from old stage and determine values for new attributes
+         *          4) make sure id for this LHS is retained, not changed
+         *          5) assign old LHS id to this LHS as parentID
+         *          6) copy old LHS origID to this LHS origID
+         *          7) set number in this LHS to numTrans
+         *          8) reset age in stage to 0
+         *          9) set active and alive to true
+         *         10) update local variables to match attributes
          */
+        //copy LagrangianParticle information
+        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
+        //start track at last position of oldLHS track
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
+        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
+        
         //copy some variables that should not change
         long idc = id;
         
@@ -359,17 +385,13 @@ public class FDLStage extends AbstractLHS {
         atts.setValue(FDLStageAttributes.PROP_active,true);     //set active to true
         atts.setValue(FDLStageAttributes.PROP_alive,true);      //set alive to true
             
-        //copy LagrangianParticle information
-        this.setLagrangianParticle(oldLHS.getLagrangianParticle());
-        //start track at last position of oldLHS track
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_PROJECTED),COORDINATE_TYPE_PROJECTED);
-        this.startTrack(oldLHS.getLastPosition(COORDINATE_TYPE_GEOGRAPHIC),COORDINATE_TYPE_GEOGRAPHIC);
         //update local variables to capture changes made here
         updateVariables();
     }
 
     /**
      *  Returns the associated parameters.  
+     * @return 
      */
     @Override
     public FDLStageParameters getParameters() {
@@ -387,7 +409,31 @@ public class FDLStage extends AbstractLHS {
             super.params = params;
             setParameterValues();
             fcnMortality = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_Mortality);
-            fcnVM = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_VerticalMovement);
+            fcnGrSL = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_GrowthSL);
+            fcnGrDW = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_GrowthDW);
+            fcnVM   = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_VerticalMovement);
+            fcnVV   = params.getSelectedIBMFunctionForCategory(FDLStageParameters.FCAT_VerticalVelocity);
+            
+            if (fcnMortality instanceof ConstantMortalityRate)
+                typeMort = FDLStageParameters.FCN_Mortality_ConstantMortalityRate;
+            else if (fcnMortality instanceof InversePowerLawMortalityRate)
+                typeMort = FDLStageParameters.FCN_Mortality_InversePowerLawMortalityRate;
+            
+            if (fcnGrSL instanceof IBMFunction_NonEggStageSTDGrowthRateSL) 
+                typeGrSL = FDLStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate;
+            else if (fcnGrSL instanceof IBMFunction_FDL_GrowthRateSL)    
+                typeGrSL = FDLStageParameters.FCN_GrSL_FDL_GrowthRate;
+            
+            if (fcnGrDW instanceof IBMFunction_NonEggStageSTDGrowthRateDW) 
+                typeGrDW = FDLStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate;
+            else if (fcnGrDW instanceof IBMFunction_FDL_GrowthRateDW)    
+                typeGrDW = FDLStageParameters.FCN_GrDW_FDL_GrowthRate;
+            
+            if (fcnVM instanceof DielVerticalMigration_FixedDepthRanges)   
+                typeVM = FDLStageParameters.FCN_VM_DVM_FixedDepthRanges;
+            
+            if (fcnVV instanceof IBMFunction_FDL_VerticalSwimmingSpeed) 
+                typeVV = FDLStageParameters.FCN_VV_FDL_VerticalSwimmingSpeed;
         } else {
             //TODO: throw some error
         }
@@ -420,6 +466,7 @@ public class FDLStage extends AbstractLHS {
         try {
             clone = (FDLStage) super.clone();
             clone.setAttributes(atts);//this clones atts
+            clone.updateVariables();  //this sets the variables in the clone to the attribute values
             clone.setParameters(params);//this clones params
             clone.lp      = (LagrangianParticle) lp.clone();
             clone.track   = (ArrayList<Coordinate>) track.clone();
@@ -442,7 +489,7 @@ public class FDLStage extends AbstractLHS {
         output.clear();
         List<LifeStageInterface> nLHSs;
         
-        if(length >= flexion) {
+        if(std_len >= flexion) {
            if ((numTrans>0)||!isSuperIndividual){
                 nLHSs = createNextLHS();
                 if (nLHSs!=null) output.addAll(nLHSs);
@@ -608,24 +655,20 @@ public class FDLStage extends AbstractLHS {
             pos = lp.getIJK();
             if (debug) logger.info("Depth after corrector step = "+(-i3d.calcZfromK(pos[0],pos[1],pos[2])));
         }
+        
         time += dt;
-        //need to update length, number
-       
-        //SH_NEW:{
-        double dtday = dt/86400;        //dt=biolmodel time step. At 72/day, dt(sec)= 1200; dtday=0.014
-        //flexion = trian(10.0,13.5,17.0); // ??? What should I use here
-        //flexion = 10.0;
-        //Growth in length
-        gL = (0.0179 + (0.015 * T) - (0.0001 * T * T));//corrected Hurst et al 2010, preflexion eq, mm per day
-        length += (gL*dtday);
+        double dtday = dt/86400; //time setp in days
         
-        //Need Mortality
-        
-        //No DVM until after flexion - next stage
-        //Preflexion larval depth: 0-40m
-        //Need Swimspeed
-        
-        //}:SH_NEW
+        if (typeGrSL==FDLStageParameters.FCN_GrSL_NonEggStageSTDGrowthRate)
+            grSL = (Double) fcnGrSL.calculate(new Double[]{T,std_len});
+        else if (typeGrSL==FDLStageParameters.FCN_GrSL_FDL_GrowthRate)
+            grSL = (Double) fcnGrSL.calculate(T);
+        if (typeGrDW==FDLStageParameters.FCN_GrDW_NonEggStageSTDGrowthRate)
+            grDW = (Double) fcnGrDW.calculate(new Double[]{T,dry_wgt});
+        if (typeGrDW==FDLStageParameters.FCN_GrDW_FDL_GrowthRate)
+            grDW = (Double) fcnGrDW.calculate(T);
+        std_len += grSL*dtday;            //mm dSL/dt = grSL
+        dry_wgt *= Math.exp(grDW * dtday);//mg dDW/dt = grDW*DW
         
         updateNum(dt);
         updateAge(dt);
@@ -642,9 +685,6 @@ public class FDLStage extends AbstractLHS {
         updateAttributes(); //update the attributes object w/ nmodified values
     }
     
-    //WTS_NEW 2012-07-26:{
-    //deleted methods calcW(dt) and calcUV(dt)
-    
     /**
      * Function to calculate movement rates.
      * 
@@ -654,22 +694,16 @@ public class FDLStage extends AbstractLHS {
     public double[] calcUVW(double[] pos, double dt) {
         //compute vertical velocity
         double w = 0;
-        double TL;
-        if (fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges) {
-            //calculate the vertical movement rate
-        //SH_NEW    
-                //w = (Double) fcnVV.calculate(new double[]{dt});
-                //Transform length (which is SL) to TL
-                TL = (length + 0.5169)/0.9315;
-                //Calculate swimspeed, ie w (mm/sec
-                //Errorcheck - T=0?  5/30/13
+        if (typeVM==FDLStageParameters.FCN_VM_DVM_FixedDepthRanges) {
+            //fcnVM instanceof wts.models.DisMELS.IBMFunctions.Movement.DielVerticalMigration_FixedDepthRanges
+            //calculate the vertical swimming rate
                 if(T<=0.0) T=0.01; 
-                w = (0.081221+(0.043168*Math.log10(T)))*Math.pow(TL,1.49652);
-                if(w==0.0)w = 0.00001;
-                
-                //Make w meters/sec
-                w=w/1000.0;
-                //density = w;
+                if (typeVV==FDLStageParameters.FCN_VV_FDL_VerticalSwimmingSpeed){
+                    double TL = (std_len + 0.5169)/0.9315; //transform SL to TL
+                    w = (Double) fcnVV.calculate(new Double[]{T,TL});//in mm/s
+                    w = w/1000.0;//convert to m/s
+                }
+            
             /**
             * Compute time of local sunrise, sunset and solar noon (in minutes, UTC) 
             * for given lon, lat, and time (in Julian day-of-year).
@@ -749,11 +783,13 @@ public class FDLStage extends AbstractLHS {
     private void updateNum(double dt) {
         //{WTS_NEW 2012-07-26:
         double mortalityRate = 0.0D;//in unis of [days]^-1
-        if (fcnMortality instanceof ConstantMortalityRate){
+        if (typeMort==FDLStageParameters.FCN_Mortality_ConstantMortalityRate){
+            //fcnMortality instanceof ConstantMortalityRate
             mortalityRate = (Double)fcnMortality.calculate(null);
         } else 
-        if (fcnMortality instanceof InversePowerLawMortalityRate){
-          //  mortalityRate = (Double)fcnMortality.calculate(diam);//using egg diameter as covariate for mortality
+        if (typeMort==FDLStageParameters.FCN_Mortality_InversePowerLawMortalityRate){
+            //fcnMortality instanceof InversePowerLawMortalityRate
+            mortalityRate = (Double)fcnMortality.calculate(std_len);//using std_len as covariate for mortality
         }
         double totRate = mortalityRate;
         if ((ageInStage>=minStageDuration)) {
@@ -768,10 +804,10 @@ public class FDLStage extends AbstractLHS {
     }
     
     private void updatePosition(double[] pos) {
-        bathym     = i3d.interpolateBathymetricDepth(pos);
+        bathym     =  i3d.interpolateBathymetricDepth(pos);
         depth      = -i3d.calcZfromK(pos[0],pos[1],pos[2]);
-        lat        = i3d.interpolateLat(pos);
-        lon        = i3d.interpolateLon(pos);
+        lat        =  i3d.interpolateLat(pos);
+        lon        =  i3d.interpolateLon(pos);
         gridCellID = ""+Math.round(pos[0])+"_"+Math.round(pos[1]);
         updateTrack();
     }
@@ -779,48 +815,10 @@ public class FDLStage extends AbstractLHS {
     private void interpolateEnvVars(double[] pos) {
         temperature = i3d.interpolateTemperature(pos);
         salinity    = i3d.interpolateSalinity(pos);
-        if (i3d.getPhysicalEnvironment().getField("rho")!=null) rho  = i3d.interpolateValue(pos,"rho");
+        if (i3d.getPhysicalEnvironment().getField("rho")!=null) 
+            rho  = i3d.interpolateValue(pos,"rho");
         else rho = 0.0;
     }
-
-/************************************************************************/
-/*	trian(tmin,tmode,tmax)	-SH code 8/2012		*/
-/************************************************************************/
-
-/*trian.c - Program returns a random deviate from a triangular       */
-/*  distribution.			  	  Oct. 25,1996  -SH  */
-
-/* tmin is the minimum value
-   tmode is the mode
-   tmax is the maximum value
-   tdev is the returned deviate
-*/
-
-private double trian(double tmin,double tmode,double tmax) {
-  int i;
-  double tdev=0.0,u,x=0.0;
-
-/*Generate triangular deviate for t(0,1)*/
-
-    u = Math.random();
-
-    if(u<=0.5)  x = Math.sqrt(0.5*u);
-    if(u>0.5)   x = 1.0 - Math.sqrt(0.5*(1.0-u));
- 
-    if(x<0.0)   x = 0.0;
-    if(x>1.0)   x = 1.0;
-
-/*Convert to triangular with tmin,tmode,tmax*/
-
-    if(x<=0.5)  tdev = tmin + 2.0*(tmode-tmin)*x;
-    if(x>0.5)   tdev = 2.0*tmode-tmax+2.0*(tmax-tmode)*x;
-
-    return tdev;
-}
-
-/************************************************************************/
-/*				end trian()				*/
-/************************************************************************/
 
     @Override
     public double getStartTime() {
@@ -900,10 +898,13 @@ private double trian(double tmin,double tmode,double tmax) {
     protected void updateAttributes() {
         super.updateAttributes();
         atts.setValue(FDLStageAttributes.PROP_attached,attached);
-        atts.setValue(FDLStageAttributes.PROP_length,length);
-        atts.setValue(FDLStageAttributes.PROP_rho,rho);
-        atts.setValue(FDLStageAttributes.PROP_salinity,salinity);
+        atts.setValue(FDLStageAttributes.PROP_SL,std_len);
+        atts.setValue(FDLStageAttributes.PROP_DW,dry_wgt);
+        atts.setValue(FDLStageAttributes.PROP_grSL,grSL);
+        atts.setValue(FDLStageAttributes.PROP_grDW,grDW);
         atts.setValue(FDLStageAttributes.PROP_temperature,temperature);    
+        atts.setValue(FDLStageAttributes.PROP_salinity,salinity);
+        atts.setValue(FDLStageAttributes.PROP_rho,rho);
         atts.setValue(FDLStageAttributes.PROP_copepod,copepod);
         atts.setValue(FDLStageAttributes.PROP_euphausiid,euphausiid);
         atts.setValue(FDLStageAttributes.PROP_neocalanus,neocalanus);
@@ -916,10 +917,13 @@ private double trian(double tmin,double tmode,double tmax) {
     protected void updateVariables() {
         super.updateVariables();
         attached     = atts.getValue(FDLStageAttributes.PROP_attached,attached);
-        length      = atts.getValue(FDLStageAttributes.PROP_length,length);
-        rho         = atts.getValue(FDLStageAttributes.PROP_rho,rho);
-        salinity    = atts.getValue(FDLStageAttributes.PROP_salinity,salinity);
+        std_len      = atts.getValue(FDLStageAttributes.PROP_SL,std_len);
+        dry_wgt      = atts.getValue(FDLStageAttributes.PROP_DW,dry_wgt);
+        grSL         = atts.getValue(FDLStageAttributes.PROP_grSL,grSL);
+        grDW         = atts.getValue(FDLStageAttributes.PROP_grDW,grDW);
         temperature = atts.getValue(FDLStageAttributes.PROP_temperature,temperature);
+        salinity    = atts.getValue(FDLStageAttributes.PROP_salinity,salinity);
+        rho         = atts.getValue(FDLStageAttributes.PROP_rho,rho);
         copepod     = atts.getValue(FDLStageAttributes.PROP_copepod,copepod);
         euphausiid  = atts.getValue(FDLStageAttributes.PROP_euphausiid,euphausiid);
         neocalanus  = atts.getValue(FDLStageAttributes.PROP_neocalanus,neocalanus);
