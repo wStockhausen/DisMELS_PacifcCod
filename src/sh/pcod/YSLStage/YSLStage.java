@@ -12,7 +12,9 @@
  *           3. Changed criteria for PNR (now similar to YSA).
  * 20210209: 1. Made changes to setInfoFromIndividual, setInfoFromSuperIndividual, setAttributes, 
  *              and clone methods to deal with differences in attributes coming from EggStage instances.
- *
+ * 20210217: 1. Added function to convert SL to DW for YSL and changed setAttributes(...) to use it
+ *                to convert SL to DW at transition from egg stage to YSL (i.e., hatch). Egg-stage DW
+ *                includes the yolk sac while the YSL DW does not.
  */
 
 package sh.pcod.YSLStage;
@@ -151,13 +153,18 @@ public class YSLStage extends AbstractLHS {
     /** IBM function selected for time to yolk-sac absorption */
     private IBMFunctionInterface fcnYSA = null; 
     
-    private int typeMort = 0;//integer indicating mortality function
-    private int typeGrSL = 0;//integer indicating SL growth function
-    private int typeGrDW = 0;//integer indicating DW growth function
-    private int typeVM   = 0;//integer indicating vertical movement function
-    private int typeVV   = 0;//integer indicating vertical velocity function
-    private int typePNR  = 0;//integer indicating PNR function
-    private int typeYSA  = 0;//integer indicating YSA function
+    /** IBM function to convert SL to DW */
+    private static final IBMFunctionInterface fcnSLtoDW = new IBMFunction_YSL_ConvertSLtoDW();
+    //the above is taken as a class-level (static) assignment because there is only 
+    //one such function of choice and will be the same for all YSL.
+    
+    private int typeMort  = 0;//integer indicating mortality function
+    private int typeGrSL  = 0;//integer indicating SL growth function
+    private int typeGrDW  = 0;//integer indicating DW growth function
+    private int typeVM    = 0;//integer indicating vertical movement function
+    private int typeVV    = 0;//integer indicating vertical velocity function
+    private int typePNR   = 0;//integer indicating PNR function
+    private int typeYSA   = 0;//integer indicating YSA function
     
     private static final Logger logger = Logger.getLogger(YSLStage.class.getName());
     
@@ -330,8 +337,11 @@ public class YSLStage extends AbstractLHS {
             EggStageAttributes oldAtts = (EggStageAttributes) newAtts;
             for (String key: atts.getKeys()) atts.setValue(key,oldAtts.getValue(key));
             //need to map attributes with different names correctly
-            atts.setValue(YSLStageAttributes.PROP_SL,oldAtts.getValue(EggStageAttributes.PROP_SL, std_len));
-            atts.setValue(YSLStageAttributes.PROP_DW,oldAtts.getValue(EggStageAttributes.PROP_DW, dry_wgt));
+            double SL = oldAtts.getValue(EggStageAttributes.PROP_SL, std_len);
+            atts.setValue(YSLStageAttributes.PROP_SL,SL);
+            //need to base YSL DW on YSL SL regression because YSL DW doesn't include yolk-sac
+            double DW = (Double) fcnSLtoDW.calculate(SL);
+            atts.setValue(YSLStageAttributes.PROP_DW,DW);
             atts.setValue(YSLStageAttributes.PROP_grSL,oldAtts.getValue(EggStageAttributes.PROP_grSL, grSL));
             atts.setValue(YSLStageAttributes.PROP_grDW,oldAtts.getValue(EggStageAttributes.PROP_grDW, grDW));
             //need to set attributes NOT included in EggStageAttributes
