@@ -14,7 +14,7 @@ import wts.models.DisMELS.framework.IBMFunctions.IBMGrowthFunctionInterface;
 /**
  * IBM function to calculate  size/temperature-dependent growth (STDG) rate in
  * dry weight for non-egg stages using
- *   rate = ((0.454 + 1.610*t - 0.069*t*t)*exp(-6.725*m)+3.705)/100 in g/g/d dry weight
+ *   rate = ((0.454 + 1.610*t - 0.069*t*t)*exp(-6.725*m))/100 in g/g/d dry weight
  * where t is temperature in deg C and m is dry weight in micrograms.
  * 
  * From Hurst et al. (2010), equation 4.
@@ -36,7 +36,7 @@ public class IBMFunction_NonEggStageSTDGrowthRateDW extends AbstractIBMFunction 
     public static final String DEFAULT_fullDescr = 
         "\n\t**************************************************************************"+
         "\n\t* This function provides an implementation of the Hurst et al. (2010)"+
-        "\n\t* temperature-dependent function for growth in dry weight for Pacific cod Epijuv."+
+        "\n\t* temperature-dependent function for growth in dry weight for non-egg stages."+
         "\n\t* "+
         "\n\t* "+
         "\n\t* @author William Stockhausen"+
@@ -45,9 +45,9 @@ public class IBMFunction_NonEggStageSTDGrowthRateDW extends AbstractIBMFunction 
         "\n\t*      t - Double value of temperature (deg C)"+
         "\n\t*      m - Double value of dry weight (micrograms)"+
         "\n\t* Value:"+
-        "\n\t*      r - Double - intrinsic STDG growth rate in dry weight (g/g/d) for egg stages"+
+        "\n\t*      r - Double - intrinsic STDG growth rate in dry weight (g/g/d) for non-egg stages"+
         "\n\t* Calculation:"+
-        "\n\t*     r = ((0.454 + 1.610*t - 0.069*t*t)*exp(-6.725*m)+3.705)/100; (original in %/d)"+
+        "\n\t*     r = ((0.454 + 1.610*t - 0.069*t*t)*exp(-6.725*m))/100; (original in %/d)"+
         "\n\t* "+
         "\n\t*  Citation:"+
         "\n\t* Hurst et al. 2010, eq. 4."+
@@ -91,7 +91,7 @@ public class IBMFunction_NonEggStageSTDGrowthRateDW extends AbstractIBMFunction 
         Double[] vals = (Double[]) o;
         double t = vals[0];
         double m = vals[1];
-        double r = ((0.454 + 1.610*t - 0.069*t*t)*Math.exp(-6.725*m)+3.705)/100;// original in %/d
+        double r = ((0.454 + 1.610*t - 0.069*t*t)*Math.exp(-6.725*m))/100;// original in %/d
         return (Double) r;
     }
     
