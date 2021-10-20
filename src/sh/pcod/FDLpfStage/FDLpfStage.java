@@ -7,6 +7,8 @@
  *            3. Added "attached" as new attribute (necessary with updated DisMELS).
  *            4. Removed "diam" since it's replaced by "length"
  * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
+ * 20210209: 1. Converted to using IBMFunctions, added STDG functions, renamed 'length' to std_len.
+ *           2. Added dry_wgt, converted a number of other variables to attributes
  *
  */
 

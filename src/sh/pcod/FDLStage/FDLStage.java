@@ -8,6 +8,8 @@
  *            4. Added "attached" as new attribute (necessary with updated DisMELS).
  *            5. Removed "diam" since it's replaced by "length"
  * 20190722: 1. Removed fields associated with egg stage attributes "devStage" and "density"
+ * 20210209: 1. Converted to using IBMFunctions, added STDG functions, renamed 'length' to std_len.
+ *           2. Added dry_wgt, converted a number of other variables to attributes
  *
  */
 
@@ -99,7 +101,7 @@ public class FDLStage extends AbstractLHS {
     /** in situ water density */
     protected double rho = 0;
     /** in situ small copepod density (mg/m^3, dry wt) */
-     protected double copepod; 
+    protected double copepod = 0; 
      /** in situ euphausiid density (mg/m^3, dry wt) */
     protected double euphausiid = 0;
      /** in situ neocalanoid density (mg/m^3, dry wt) */

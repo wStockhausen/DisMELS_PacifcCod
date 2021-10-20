@@ -11,6 +11,8 @@
  *                Renamed "diam" as "std_len", since that's what it is.
  *             2. Converted to IBMFunctions for growth, stage duration.
  *             3. Added "dry_wgt" as an attribute.
+ * 2021-10-20: 1. Corrected error identifying grDW function correctly if 
+ *                  typeGrDW was not EggStageParameters.FCN_GrDW_EggStage_GrowthRate
  */
 
 package sh.pcod.EggStage;
@@ -24,6 +26,7 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
+import wts.roms.model.Interpolator2D;
 import wts.roms.model.LagrangianParticle;
 
 /**
@@ -96,6 +99,8 @@ public class EggStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
+    private String Su = "SU";
+    private String Sv = "SV";
     
     //IBM Functions
     /** IBM function selected for mortality */
@@ -548,6 +553,10 @@ public class EggStage extends AbstractLHS {
                 logger.info("--IJ info : "+hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
                 throw(ex);
             }
+            double testSu = i3d.interpolateValue(IJ, Su, Interpolator2D.INTERP_VAL);
+            logger.info("testSu = "+ testSu);
+            double testSv = i3d.interpolateValue(IJ, Sv, Interpolator2D.INTERP_VAL);
+            logger.info("testSv = "+ testSv);
             double z = i3d.interpolateBathymetricDepth(IJ);
             if (debug) logger.info("Bathymetric depth = "+z);
             double ssh = i3d.interpolateSSH(IJ);
@@ -612,7 +621,7 @@ public class EggStage extends AbstractLHS {
         //growth rate (g/g/d) and integration for embryo SL
         if (typeGrDW==EggStageParameters.FCN_GrDW_EggStage_GrowthRate) //T-dep rate for DW
             grDW = (Double)fcnGrDW.calculate(T); else 
-        if (typeGrSL==EggStageParameters.FCN_GrSL_EggStageSTDGrowthRate) //STDG rate for DW
+        if (typeGrDW==EggStageParameters.FCN_GrDW_EggStageSTDGrowthRate) //STDG rate for DW
             grDW = (Double)fcnGrDW.calculate((new Double[]{T,dry_wgt})); 
         dry_wgt *= Math.exp(grDW * dtday);//mg
         
