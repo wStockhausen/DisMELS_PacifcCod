@@ -13,6 +13,7 @@
  *             3. Added "dry_wgt" as an attribute.
  * 2021-10-20: 1. Corrected error identifying grDW function correctly if 
  *                  typeGrDW was not EggStageParameters.FCN_GrDW_EggStage_GrowthRate
+ * 2021-10-22: 1. Removed testing variables Su, Sv.
  */
 
 package sh.pcod.EggStage;
@@ -26,7 +27,6 @@ import wts.models.DisMELS.IBMFunctions.Mortality.ConstantMortalityRate;
 import wts.models.DisMELS.IBMFunctions.Mortality.InversePowerLawMortalityRate;
 import wts.models.DisMELS.framework.*;
 import wts.models.DisMELS.framework.IBMFunctions.IBMFunctionInterface;
-import wts.roms.model.Interpolator2D;
 import wts.roms.model.LagrangianParticle;
 
 /**
@@ -99,8 +99,6 @@ public class EggStage extends AbstractLHS {
             //other fields
     /** number of individuals transitioning to next stage */
     private double numTrans;  
-    private String Su = "SU";
-    private String Sv = "SV";
     
     //IBM Functions
     /** IBM function selected for mortality */
@@ -553,10 +551,6 @@ public class EggStage extends AbstractLHS {
                 logger.info("--IJ info : "+hType+cc+vType+cc+startTime+cc+xPos+cc+yPos+cc+zPos);
                 throw(ex);
             }
-            double testSu = i3d.interpolateValue(IJ, Su, Interpolator2D.INTERP_VAL);
-            logger.info("testSu = "+ testSu);
-            double testSv = i3d.interpolateValue(IJ, Sv, Interpolator2D.INTERP_VAL);
-            logger.info("testSv = "+ testSv);
             double z = i3d.interpolateBathymetricDepth(IJ);
             if (debug) logger.info("Bathymetric depth = "+z);
             double ssh = i3d.interpolateSSH(IJ);

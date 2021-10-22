@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
 OpenIDE-Module: sh.pcod
 OpenIDE-Module-Localizing-Bundle: sh/pcod/Bundle.properties
-OpenIDE-Module-Specification-Version: 20211020
+OpenIDE-Module-Specification-Version: 20211022
 
